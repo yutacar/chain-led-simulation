@@ -33,3 +33,33 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   生成でリアルタイム性が不要な点がBattleshipと異なるが、それでも実測を先にする
 - ユーザー確認済み: 残りコマ生成時に任意のテキストヒント入力を追加する（空欄なら
   1枚目の絵柄のみから継続生成）
+
+## Phase 1: アニメーションコア（完了 2026-07-09）
+
+- CMake の `project()` をテンプレート既定の `template_app` から `chainled` に改名
+  （Battleship が最初期に `battleship` へ改名したのと同じ判断。バイナリ/ライブラリ名が
+  `${PROJECT_NAME}_xxx` 展開で自動的に揃う。`template_app` の直書き参照は
+  `CMakeLists.txt` の `project()` 宣言1箇所のみだったため低リスクと判断）
+- `src/core/`（`chainled::core` 名前空間、LVGL/プラットフォーム非依存）:
+  - `Frame`: 8×8 RGB565グリッド。pixel get/set（範囲外は安全に無視）、clear/fill、
+    flip_horizontal/vertical、shift（はみ出た部分は破棄、ラップしない）
+  - `Animation`: `Frame` 列（1〜10、既定は1枚のブランクフレームから開始）+
+    フレームごとの表示時間（既定200ms、50〜5000msにクランプ）。
+    add_blank_frame/duplicate_frame/remove_frame/move_frame は境界（最大10・最小1）を守り
+    違反時は false を返す（例外を投げない）
+  - `animation_serializer`: 独自テキスト形式（JSONライブラリ非導入 — Battleshipも
+    JSONライブラリなしで自前プロトコルを書いた前例に倣った判断）。ローカル保存用だが
+    将来のBLE配布ペイロード（PLAN.md §2.3）としてもそのまま使う想定のため、
+    壊れた入力は例外を投げず必ず `std::nullopt` を返す設計を徹底
+- テスト基盤: `tests/CMakeLists.txt` で GoogleTest v1.15.2 を FetchContent 導入
+  （Battleshipと同一バージョン・同一パターン）。`CHAINLED_BUILD_TESTS`
+  オプション（既定 `USE_DESKTOP` に連動）でデバイスクロスビルドには含めない
+- **37/37 テスト green**（`ctest -C Debug`、`build/darwin-arm64` にて確認）。
+  境界値（0枚除去禁止・11枚目追加禁止・不正マジック/フレーム数/16進数/フレーム順序の
+  拒否・ファイル未存在時のnullopt等）を含む
+- フルアプリ（`chainled` 実行体）のビルドも改名後に再確認、問題なし
+
+## 次フェーズへの引き継ぎ
+- Phase 2（エディタ+シミュレータUI + APP_SCRIPT/screenshot機構）から着手
+- `AnimationCore` はまだどのUI/viewmodelにもリンクされていない（Phase 1はコア単体で
+  完結）。Phase 2 で `chainled_viewmodel` 等から `chainled_animation_core` をリンクする
