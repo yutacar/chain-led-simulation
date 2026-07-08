@@ -1,12 +1,23 @@
-# Chain LED Simulation for CardputerZero — 設計・開発計画（Rev.1）
+# Chain LED Simulation for CardputerZero — 設計・開発計画（Rev.2）
 
 8x8 ドットアニメーション（最大10コマ）を CardputerZero 上で作成・シミュレーションし、
 実機の Chain Mono / Chain RGB（M5Stack Chain シリーズ 8x8 LED マトリクスユニット）に
 繋いで実際に表示できるアプリ。作成したアニメーションは BLE で配布・受信できる
-（LoRa は将来対応、対象外）。
+（LoRa は将来対応、対象外）。**1枚目のコマを描くと、残りのコマをローカルLLMが
+自動生成する機能を持つ**（Rev.2 で追加。任意のテキストヒント対応、LLM 不可時は
+プロシージャル生成にフォールバック）。
 
 参考: [Battleship for CardputerZero](https://github.com/yutacar/Battleship)（同テンプレート・同進め方の先行プロジェクト）。
 本文書は `docs/APP_DEV_INSTRUCTION_TEMPLATE.md` の指示書に基づく。
+
+**Rev.2 変更点（2026-07-09、ユーザー指示）**: 「1枚目を描くと残りのコマをローカルLLMで
+生成する」機能を追加。Battleship では同じハードウェア（RAM 512MB, A53@1GHz）上での
+ローカルLLM常駐（対戦中のリアルタイム解説文生成）を速度/サイズ面から最終的に全廃した
+経緯がある（[[battleship-cardputerzero-project]] 参照）。本アプリのLLM利用は
+**対戦中のリアルタイム性が不要なワンショット・オフライン生成**である点が異なるため
+再度採用するが、その教訓を踏まえ (a) Phase 3 冒頭で候補モデルのRAM/速度を実機借用前に
+まず定量評価する Go/No-Go チェックポイントを設け、(b) LLM 不使用でも動作する
+プロシージャル・フォールバックを既定の外枠として先に実装する、の2点を設計に反映した。
 
 ---
 
@@ -50,18 +61,18 @@ Battleship 同様、**ロジック（アニメーションコア）/ 出力（LE
 デスクトップでほぼ全機能を開発・検証できることを最優先する。
 
 ```
-┌────────────────────────────────────────────────┐
-│ View / ViewModel (LVGL v9)                     │  エディタ・シミュレータ・設定画面
-├────────────────────────────────────────────────┤
-│ AnimationController                            │  編集操作・再生タイマー
-├──────────────┬─────────────────────────────────┤
-│ AnimationCore │ IChainOutput                    │── RealChainOutput (Linux UART, 実プロトコル)
-│ (純粋ロジック) │  8x8×最大10フレームを描画        │── SimulatorChainOutput (画面内 8x8 描画・開発既定)
-│ フレーム編集   │                                  │
-│ 判定・直列化   │ IAnimationTransport              │── LoopbackTransport (テスト)
-│               │  アニメーションの配布/受信         │── TcpTransport (開発用・デスクトップ主経路)
-│               │                                  │── BleTransport (実機・デフォルト配布経路)
-└──────────────┴─────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│ View / ViewModel (LVGL v9)                           │  エディタ・シミュレータ・生成・設定画面
+├──────────────────────────────────────────────────────┤
+│ AnimationController                                  │  編集操作・生成トリガー・再生タイマー
+├──────────────┬───────────────────┬────────────────────┤
+│ AnimationCore │ AnimationGenerator │ IChainOutput      │── RealChainOutput (Linux UART, 実プロトコル)
+│ (純粋ロジック) │  1枚目→残り自動生成 │  8x8を描画          │── SimulatorChainOutput (画面内描画・開発既定)
+│ フレーム編集   │  ├ ProceduralCompleter(既定・依存ゼロ)│                    │
+│ 判定・直列化   │  └ LlmCompleter(任意・llama.cpp+GBNF) │ IAnimationTransport│── LoopbackTransport (テスト)
+│               │                                    │  配布/受信          │── TcpTransport (開発用主経路)
+│               │                                    │                    │── BleTransport (実機デフォルト)
+└──────────────┴───────────────────┴────────────────────┘
 ```
 
 ### 2.1 AnimationCore（純粋 C++・LVGL 非依存）
@@ -88,15 +99,52 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 - 実装順: `LoopbackTransport`（テスト）→ `TcpTransport`（開発・デスクトップの主検証経路、LAN内P2P）→ `BleTransport`（実機・**デフォルトかつ唯一の配布方式**、BlueZ D-Bus、NUS互換GATT）
 - **LoRa**: `ILoRaTransport` のインターフェースのみ用意し実装は将来対応（今回スコープ外・指示書§0の対象外に明記の通り）
 
-### 2.4 UI（320×170・キーボードのみ）
+### 2.4 AnimationGenerator — 1枚目から残りコマを自動生成（Rev.2 追加）
+
+エディタで1枚目のコマを描いた状態で「Generate」操作（明示的なキー操作。描画中に
+自動発火はしない — 途中経過での誤発火を避ける判断）を行うと、目標フレーム数
+（2〜10、既定は指示書のUIで選択）まで残りのコマを自動生成する。
+
+- **`AnimationGenerator` インターフェース**を切り、2実装を持つ:
+  - **`ProceduralCompleter`（既定・常時利用可能・依存ゼロ）**: 1枚目のパターンに対し
+    平行移動/反転/回転/色相回転などの決定的な変換を繰り返し適用してコマ列を生成する
+    ヒューリスティック。LLM 不要でユニットテストも容易 — **Phase 3 はまずこれを実装し、
+    LLM 抜きでも機能が成立する状態を最初に作る**
+  - **`LlmCompleter`（任意・モデル要配置）**: ローカル小型 LLM（llama.cpp、候補
+    SmolLM2-135M/360M クラス、量子化）を用いてコマを1枚ずつ逐次生成する
+- **フレーム表現（LLMの出力を短く・確実にするための設計）**: 1枚目に使われている
+  色から最大9色のパレットを抽出し、各フレームを「パレット番号1桁×64ピクセル」の
+  64文字の数字列としてエンコードする（Mono は自然に "0"/"1" の2値になる）。
+  llama.cpp の **GBNF 文法**で出力を「厳密に64桁の数字列」に制約し、フリーテキスト
+  生成によるパース失敗・暴走を防ぐ
+- **生成方式**: フレームごとの逐次生成（フレーム1→2→…→N、直前までのフレーム列を
+  文脈として次の1枚を生成）。理由: (a) 1回あたりの出力長を64文字に固定できる、
+  (b) 小型モデルでも文脈が短く安定しやすい、(c) 生成順に画面へプレビュー表示できる
+- **任意のテキストヒント**: エディタ画面に空欄可の1行テキスト入力を追加（例:
+  「跳ねるボール」「点滅」）。空欄なら1枚目の絵柄のみからの継続として生成する
+  （ユーザー確認済み: Rev.2 質問への回答）
+- **Go/No-Go 実測（Phase 3 冒頭で実施）**: Battleship で同一ハードウェア上の
+  常駐LLM（対戦中のリアルタイム解説文生成）が RAM/速度面で不採用になった経緯が
+  あるため、本機能を作り込む前に候補モデルの **RAM 使用量・1コマあたりの生成時間**
+  を実機（またはエミュレータ上限に近い制約でのベンチ）で計測し、実用に耐えるか
+  判断する。不採用となっても `ProceduralCompleter` のみで機能は完成しているため、
+  アプリ自体の価値は損なわれない設計
+- **配布判断**: Battleship 同様、**LLM モデルファイルは .deb に同梱しない**
+  （256MB級は配布に不適切）。`LlmCompleter` はモデルファイルが設定で指定された
+  パスに存在する場合のみ有効化され、無い場合は自動的に `ProceduralCompleter`
+  にフォールバックする。ストア説明文にはこの挙動を正確に記載する（指示書§0.8）
+- ビルドフラグ `CHAINLED_LLM`（既定 ON。デバイスで著しく非現実的と判明した場合は
+  Battleship の `BATTLESHIP_LLM` 同様 OFF 既定への切り替えも選択肢として残す）
+
+### 2.5 UI（320×170・キーボードのみ）
 
 | 画面 | 内容 |
 |---|---|
 | タイトル/メニュー | New Animation / Load / Simulate to Chain / Receive (BLE) / Settings |
-| エディタ | 8×8 グリッド編集（矢印+Enterでピクセル切替）、フレームタイムライン（下部）、追加/削除/複製/並べ替え、再生プレビュー |
+| エディタ | 8×8 グリッド編集（矢印+Enterでピクセル切替）、フレームタイムライン（下部）、追加/削除/複製/並べ替え、再生プレビュー、**Generate操作（目標コマ数・任意テキストヒント入力→残りコマ自動生成）** |
 | シミュレータ | `SimulatorChainOutput` のオンスクリーン描画 + 出力ターゲット（Mono/RGB）切替 + 実機出力 ON/OFF |
 | 配布 (Send/Receive) | BLE 相手探索 → 選択 → 転送進捗表示 |
-| 設定 | 言語（EN/JA/ZH）、UART ポート情報表示（読み取り専用） |
+| 設定 | 言語（EN/JA/ZH）、UART ポート情報表示（読み取り専用）、LLMモデルパス表示（読み取り専用、未配置なら「Procedural fallback active」等の表示） |
 
 - Esc 規約・キー操作ガイド常時表示は Battleship と同一方針
 
@@ -104,31 +152,34 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 
 ## 3. 開発フェーズ計画
 
-**エミュレータファースト**。Phase 0–5 は Mac 上で完結。実機依存（RealChainOutput の実UART, BLE実通信）はヘッドレステスト+実機到着後の検証として明示的に残す。
+**エミュレータファースト**。Phase 0–8 は Mac 上で完結。実機依存（RealChainOutput の実UART, BLE実通信, LlmCompleter の実機RAM/速度）はヘッドレステスト+実機到着後の検証として明示的に残す。
 
 | Phase | 内容 | 完了条件 |
 |---|---|---|
 | **0. 環境構築** | ✅ 完了。template 取得・git init・private repo 作成・SDL デスクトップビルド確認（fmt include 修正済み） | デスクトップでテンプレートアプリ起動 ✅ |
 | **1. アニメーションコア** | `AnimationCore`（フレーム編集・直列化）実装 + GoogleTest/CTest 導入 | 全テスト green |
 | **2. エディタ+シミュレータ UI** | エディタ画面・タイムライン・`SimulatorChainOutput` 描画 + APP_SCRIPT/screenshot 機構 | 通しでアニメーション作成→オンスクリーン再生確認、全画面スクショ目視OK |
-| **3. Chain プロトコル + デバイス出力** | UART フレームのエンコード/デコード実装（ヘッドレステスト）、`RealChainOutput`（Linux termios）実装、Mono/RGB 判別・変換 | プロトコルのエンコード/デコード単体テスト green、Linux ビルド成功（実機との実通信検証は Phase 8） |
-| **4. 配布プロトコル + TCP開発経路** | チャンク転送プロトコル + 再送層 + `LoopbackTransport`/`TcpTransport` 実装、Send/Receive UI | 2プロセス（Mac）でアニメーション転送が完走、ロス注入テスト green |
-| **5. i18n + 設定永続化** | 文字列カタログ（EN/JA/ZH）、CJK フォントサブセット、設定ファイル永続化 | 3言語で全画面スクショOK、設定が再起動後も保持 |
-| **6. BLE 配布（実機・デフォルト経路）** | `BleTransport` 実装（BlueZ D-Bus、NUS互換GATT） | ヘッドレステスト green + デバイスビルド成功（実機2台での実配布は Phase 8） |
-| **7. パッケージング** | APPLaunch 準拠 .deb 化、app-builder.json、prepublish_check | prepublish 全パス |
-| **8. 実機検証 → publish** | CardputerZero実機 + Chain Mono/RGB 実機での動作確認（UART出力・BLE配布・Esc規約等）、czdev publish | 実機チェックリスト完走、PR 提出 |
+| **3. 残りコマ自動生成（Rev.2 新設）** | Go/No-Go実測 → `ProceduralCompleter` 実装 → （実用と判断できれば）`LlmCompleter`（llama.cpp+GBNF、パレット数値エンコード）実装、Generate UI（目標コマ数・任意テキストヒント） | `ProceduralCompleter` で1枚目→残りコマ生成のテスト green（必須）。LLM実測結果と可否判断・採否理由を NOTES.md に記録（LLM実装自体はGo判定時のみ必須） |
+| **4. Chain プロトコル + デバイス出力** | UART フレームのエンコード/デコード実装（ヘッドレステスト）、`RealChainOutput`（Linux termios）実装、Mono/RGB 判別・変換 | プロトコルのエンコード/デコード単体テスト green、Linux ビルド成功（実機との実通信検証は Phase 9） |
+| **5. 配布プロトコル + TCP開発経路** | チャンク転送プロトコル + 再送層 + `LoopbackTransport`/`TcpTransport` 実装、Send/Receive UI | 2プロセス（Mac）でアニメーション転送が完走、ロス注入テスト green |
+| **6. i18n + 設定永続化** | 文字列カタログ（EN/JA/ZH）、CJK フォントサブセット、設定ファイル永続化 | 3言語で全画面スクショOK、設定が再起動後も保持 |
+| **7. BLE 配布（実機・デフォルト経路）** | `BleTransport` 実装（BlueZ D-Bus、NUS互換GATT） | ヘッドレステスト green + デバイスビルド成功（実機2台での実配布は Phase 9） |
+| **8. パッケージング** | APPLaunch 準拠 .deb 化、app-builder.json、prepublish_check、（Go判定時）LLMモデル同梱なし運用のREADME整備 | prepublish 全パス |
+| **9. 実機検証 → publish** | CardputerZero実機 + Chain Mono/RGB 実機での動作確認（UART出力・BLE配布・Esc規約・LlmCompleter実測等）、czdev publish | 実機チェックリスト完走、PR 提出 |
 
 ### フェーズ間の依存
-- Phase 1 → 2 は直列。Phase 3（Chainプロトコル）は Phase 1 完了後、Phase 2 と並行着手可
-- Phase 4（配布・TCP開発経路）は Phase 1 完了後、Phase 2/3 と並行着手可
-- Phase 5（i18n）は Phase 2 完了後に着手（Phase 3/4 と並行可）
-- Phase 6（BLE）は Phase 4 完了後
-- Phase 7（パッケージング）は Phase 5・6 完了後。Phase 8（実機）はハードウェア到着後
+- Phase 1 → 2 は直列。Phase 3（残りコマ自動生成）は Phase 2 完了後（エディタが要る）に着手
+- Phase 4（Chainプロトコル）は Phase 1 完了後、Phase 2/3 と並行着手可
+- Phase 5（配布・TCP開発経路）は Phase 1 完了後、Phase 2/3/4 と並行着手可
+- Phase 6（i18n）は Phase 3 完了後に着手（Phase 4/5 と並行可。Generate画面の文言も対象のため）
+- Phase 7（BLE）は Phase 5 完了後
+- Phase 8（パッケージング）は Phase 6・7 完了後。Phase 9（実機）はハードウェア到着後
 
 ### 必要な物品（ユーザー側で準備）
-- CardputerZero 実機（Phase 8）
-- Chain Mono ×1 + Chain RGB ×1（Phase 8。Chain Bridge 付属想定）
-- ※Phase 0–7 は Mac 上のエミュレータ・ヘッドレステストのみで進行可能
+- CardputerZero 実機（Phase 9）
+- Chain Mono ×1 + Chain RGB ×1（Phase 9。Chain Bridge 付属想定）
+- （Go判定時）ローカルLLM検証用の量子化モデルファイル（候補: SmolLM2-135M/360M クラスのGGUF。入手先はPhase 3着手時に選定）
+- ※Phase 0–8 は Mac 上のエミュレータ・ヘッドレステストのみで進行可能
 
 ---
 
@@ -142,6 +193,9 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 | Mono(白黒)/RGB(フルカラー)の二種の出力ターゲットでエディタが二重実装になる懸念 | 内部モデルをRGB565に統一し、Mono出力時のみ閾値変換する設計で単一エディタに統一（§2.1/2.2の設計判断） |
 | CJK フォント・.deb サイズ | Battleship の `tools/generate_cjk_fonts.py` 相当の手法（fontTools でグリフサブセット）を流用 |
 | 複数 Chain ユニットのデイジーチェーン対応要求が後から出る可能性 | プロトコルの id フィールドは既に複数台対応済みのため、UIの拡張のみで対応可能な設計にとどめ、v1では実装しない（YAGNI） |
+| ローカルLLM（`LlmCompleter`）がRAM512MB/A53@1GHzで実用速度に達しない（Battleshipの前例あり） | Phase 3冒頭でGo/No-Go実測を先に行う。ワンショット・オフライン生成（対戦中のリアルタイム性が不要）なのでBattleshipの常駐リアルタイム解説より要求は緩いが、それでも不採用ならフォールバックの`ProceduralCompleter`のみで機能は完成させる設計とし、投資済み作業が無駄にならないようにする |
+| LLM出力のパース失敗・出力形式の崩れ | GBNF文法で「厳密に64桁の数字列」に出力を制約し、フリーテキスト生成由来の構文崩れを構造的に防止 |
+| LLMモデルファイル（.gguf）を.debに同梱すると配布サイズが肥大化 | Battleship同様に同梱せず、設定パスにモデルがある場合のみ有効化・無ければ自動フォールバックする設計とし、ストア説明文にも正確に記載 |
 
 ---
 
