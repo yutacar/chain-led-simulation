@@ -6,7 +6,7 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-project(template_app VERSION 0.0.1 LANGUAGES C CXX)
+project(chainled VERSION 0.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -606,5 +606,38 @@ target_link_libraries(${PROJECT_NAME}
         ${PROJECT_NAME}_viewmodel
 )
 
+# ====================================================
+# chainled_animation_core sources
+# - Pure C++ animation logic (Frame, Animation, text serialization)
+# - No LVGL / platform / I/O dependency beyond the standard library
+# - Namespace: chainled::core
+# ====================================================
+file(GLOB_RECURSE CHAINLED_ANIMATION_CORE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp"
+)
+
+add_library(chainled_animation_core STATIC
+    ${CHAINLED_ANIMATION_CORE_SOURCES}
+)
+
+target_include_directories(chainled_animation_core
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_compile_features(chainled_animation_core PUBLIC cxx_std_17)
+
 # Package deb
 include(cmake/cm0-package.cmake)
+
+# ====================================================
+# Unit tests (GoogleTest via CTest)
+# - chainled_animation_core is LVGL/platform-free, so its test binary is
+#   only built for desktop developer builds (USE_DESKTOP=ON). Device/cross
+#   builds never compile or run it.
+# ====================================================
+option(CHAINLED_BUILD_TESTS "Build chainled_animation_core unit tests (GoogleTest, desktop only)" ${USE_DESKTOP})
+if(USE_DESKTOP AND CHAINLED_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
