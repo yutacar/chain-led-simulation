@@ -499,6 +499,10 @@ file(GLOB_RECURSE VIEWMODEL_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/viewmodel/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/viewmodel/*.cpp"
 )
+# See the matching REMOVE_ITEM comment on APP_SOURCES above.
+list(APPEND VIEWMODEL_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/paths.cpp"
+)
 
 add_library(${PROJECT_NAME}_viewmodel
     STATIC
@@ -532,6 +536,15 @@ target_link_libraries(${PROJECT_NAME}_viewmodel
 file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/*.cpp"
+)
+# app/paths.* is compiled into ${PROJECT_NAME}_viewmodel instead (see below):
+# BaseViewModel calls app::config_dir()/default_animation_save_path(), and
+# ${PROJECT_NAME}_core already links ${PROJECT_NAME}_viewmodel (ScreenManager
+# needs BaseViewModel), so leaving paths.cpp's *object* in this target would
+# create a viewmodel<->core link cycle. macOS's ld64 tolerates that; GNU ld
+# (the CM0 cross build) does not -- caught building for the device target.
+list(REMOVE_ITEM APP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/paths.cpp"
 )
 
 file(GLOB_RECURSE LOGGER_SOURCES CONFIGURE_DEPENDS
@@ -664,6 +677,37 @@ target_compile_features(chainled_generator PUBLIC cxx_std_17)
 target_link_libraries(${PROJECT_NAME}_viewmodel
     PUBLIC
         chainled_generator
+)
+
+# ====================================================
+# chainled_chain sources
+# - Chain Mono/Chain RGB UART protocol (framing/CRC, frame encoding) plus
+#   RealChainOutput (POSIX termios). Pure protocol logic is LVGL-free and
+#   fully unit-testable; RealChainOutput's actual I/O can only be verified
+#   against real hardware (Phase 9) but degrades to "not connected" safely
+#   without it. See PLAN.md §1.2/§2.2.
+# - Namespace: chainled::chain
+# ====================================================
+file(GLOB_RECURSE CHAINLED_CHAIN_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/chain/*.cpp"
+)
+
+add_library(chainled_chain STATIC
+    ${CHAINLED_CHAIN_SOURCES}
+)
+
+target_link_libraries(chainled_chain
+    PUBLIC
+        chainled_animation_core
+)
+
+target_compile_features(chainled_chain PUBLIC cxx_std_17)
+
+# Only the Simulator screen (view layer) talks to chainled_chain directly
+# (the "real output ON/OFF" toggle); it's not a viewmodel/core concern.
+target_link_libraries(${PROJECT_NAME}_view
+    PUBLIC
+        chainled_chain
 )
 
 # Package deb

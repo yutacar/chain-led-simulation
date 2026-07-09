@@ -11,7 +11,10 @@
 #include "pixel_grid.h"
 #include "theme.h"
 
+#include "chain/real_chain_output.h"
+
 #include <cstdio>
+#include <memory>
 
 namespace screen {
 namespace {
@@ -22,10 +25,26 @@ struct SimulatorUi {
     viewmodel::BaseViewModel* view_model = nullptr;
     view::widgets::PixelGrid grid;
     lv_obj_t* title_label = nullptr;
+    lv_obj_t* guide_label = nullptr;
     lv_timer_t* timer = nullptr;
     int preview_index = 0;
     bool mono = false;
+
+    // "Real output ON/OFF" (PLAN.md §2.5): lazily constructed on first 'R'
+    // press, since opening (or failing to open) a serial port is real I/O
+    // we don't want to do just from entering this screen. real_output's
+    // own is_connected() tracks whether a Chain unit actually answered;
+    // real_output_enabled tracks only whether the user asked for it.
+    std::unique_ptr<chainled::chain::RealChainOutput> real_output;
+    bool real_output_enabled = false;
 };
+
+const char* real_output_status(const SimulatorUi* ui) {
+    if (!ui->real_output_enabled) {
+        return "OFF";
+    }
+    return (ui->real_output && ui->real_output->is_connected()) ? "ON" : "no device";
+}
 
 void render(SimulatorUi* ui) {
     if (!ui || !ui->view_model) {
@@ -36,13 +55,22 @@ void render(SimulatorUi* ui) {
     if (ui->preview_index >= animation.frame_count()) {
         ui->preview_index = 0;
     }
+    const auto& frame = animation.frame(ui->preview_index);
     const auto palette = view::palette(vm.is_dark_mode());
-    view::widgets::refresh_pixel_grid(ui->grid, animation.frame(ui->preview_index), palette, -1, -1, ui->mono);
+    view::widgets::refresh_pixel_grid(ui->grid, frame, palette, -1, -1, ui->mono);
 
-    char buf[48];
-    std::snprintf(buf, sizeof(buf), "Simulator   Frame %d/%d  [%s]", ui->preview_index + 1, animation.frame_count(),
-                  ui->mono ? "Mono" : "RGB");
-    lv_label_set_text(ui->title_label, buf);
+    if (ui->real_output_enabled && ui->real_output && ui->real_output->is_connected()) {
+        ui->real_output->show_frame(frame, ui->mono);
+    }
+
+    char title_buf[48];
+    std::snprintf(title_buf, sizeof(title_buf), "Simulator   Frame %d/%d  [%s]", ui->preview_index + 1,
+                  animation.frame_count(), ui->mono ? "Mono" : "RGB");
+    lv_label_set_text(ui->title_label, title_buf);
+
+    char guide_buf[64];
+    std::snprintf(guide_buf, sizeof(guide_buf), "M:Mono/RGB  R:Real[%s]  Esc:Back", real_output_status(ui));
+    lv_label_set_text(ui->guide_label, guide_buf);
 }
 
 void timer_cb(lv_timer_t* timer) {
@@ -64,6 +92,12 @@ void key_cb(lv_event_t* event) {
     const uint32_t key = lv_event_get_key(event);
     if (key == 'm' || key == 'M') {
         ui->mono = !ui->mono;
+        render(ui);
+    } else if (key == 'r' || key == 'R') {
+        if (!ui->real_output) {
+            ui->real_output = std::make_unique<chainled::chain::RealChainOutput>();
+        }
+        ui->real_output_enabled = !ui->real_output_enabled;
         render(ui);
     }
 }
@@ -105,11 +139,11 @@ void SimulatorScreen::build_content(lv_obj_t* content) {
     lv_group_add_obj(BaseScreen::shared_group(), ui->grid.container);
 
     auto* guide = lv_label_create(content);
-    lv_label_set_text(guide, "M: Mono/RGB view    Esc: Back");
     lv_obj_set_style_text_font(guide, small_font ? small_font : &lv_font_montserrat_12, 0);
     lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
     lv_obj_align(guide, LV_ALIGN_BOTTOM_MID, 0, -4);
     reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
+    ui->guide_label = guide;
 
     render(ui);
     const auto& animation = view_model().animation();

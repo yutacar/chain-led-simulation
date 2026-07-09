@@ -158,9 +158,58 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
 - 使用した `llama.cpp`（brew）はローカル環境に残置（次回のGo/No-Go再検証に
   再利用可能。削除が必要ならユーザー判断で）
 
+## Phase 4: Chainプロトコル + デバイス出力（完了 2026-07-09）
+
+### プロトコル実装
+- `src/chain/`（`chainled::chain` 名前空間、`chainled_animation_core` のみに依存する
+  純粋ロジック部分と、POSIX termios を使う `RealChainOutput` の2部構成）
+  - `protocol.h/.cpp`: パケットのエンコード（`encode_packet`）+ ストリーミング
+    デコーダ（`PacketDecoder`）。M5Chain 公式ライブラリの `processBufferData()` と
+    同じ「ヘッダ探索→長さ検証→CRC/フッタ検証→1バイトずつリシンク」方式を実装
+  - `chain_commands.h`: オペコード定数（`SET_DISPLAY_BUFFER=0x31` 等）・
+    デバイスタイプコード（Mono=0x000D, RGB=0x000E）
+  - `frame_codec.h/.cpp`: `Frame` → Mono用8バイト（1バイト/行、ビット=列。
+    ビット順はM5Stack公式docsに明記が無いため独自の選択—実機で鏡像なら要調整と
+    コメントで明記）/ RGB用128バイト（64px × RGB565リトルエンディアン）変換
+  - `chain_output.h`: `IChainOutput` 抽象インターフェース
+  - `real_chain_output.h/.cpp`: `IChainOutput` の実装。ポートパスは
+    `CHAINLED_UART_DEVICE` 環境変数のみから取得（ハードコード無し）。
+    オープン失敗時は例外を投げず `is_connected()==false` のまま安全に動作継続
+- **17テスト追加、全67テスト green**（プロトコルのラウンドトリップ・複数パケット・
+  分割feed・ノイズ混入からのリシンク・CRC/フッタ破損検出・Frame⇔バッファ変換・
+  RealChainOutputの「未接続時は安全にno-op」の4系統）
+
+### Simulator画面への統合
+- `R` キーで実機出力 ON/OFF をトグル（PLAN.md §2.5「実機出力 ON/OFF」）。
+  `RealChainOutput` は初回トグル時に遅延生成（画面に入るだけでは実I/Oを起こさない
+  設計）。ステータスを `R:Real[OFF|ON|no device]` として画面下部に表示
+
+### Linux（CM0実機）クロスビルド検証（ユーザー指示で今回実施）
+- Battleship の実績手順（NOTES.md §14.4）をそのまま踏襲: BSPアーカイブ
+  （`M5CardputerZero-UserDemo` releases v0.0.4、435MB、認証不要）を
+  `.cache/bsp_sysroot/` に展開し、`debian:trixie`（**bookworm不可** —
+  BSPのglibc 2.41とヘッダ不整合）のネイティブarm64コンテナに読み取り専用マウント。
+  pip版cmake 4.3.4（trixieのapt版は要求バージョンに満たない）でconfigure/build
+- **見つけて直した実バグ**: `chainled_viewmodel`（`app::config_dir()`/
+  `default_animation_save_path()` を呼ぶ）と `chainled_core`（`ScreenManager` が
+  `BaseViewModel` を必要とし `chainled_viewmodel` にリンク）の間で循環参照が発生
+  — `paths.cpp` を `src/app/` に置きつつ `chainled_core` のソースとしてビルドして
+  いたのが原因。**macOSの ld64 は許容するが GNU ld（Linuxクロスビルド）は
+  1パス左→右の解決のため未解決シンボルのままリンク失敗**。
+  `CMakeLists.txt` で `paths.cpp` を `APP_SOURCES`（core向け）から除外し
+  `VIEWMODEL_SOURCES` に追加することで解消（ヘッダの置き場所・include パスは
+  変更なし）。**デスクトップビルドでは顕在化しない類のバグで、実際にクロス
+  ビルドを実施しなければ発見できなかった**
+- 修正後、`chainled` 実行体が **aarch64 ELF PIE**（`for GNU/Linux 3.7.0`）として
+  正常にリンク完了。`file` コマンドで確認。実機接続・動作確認は Phase 9
+- BSP展開済みディレクトリ（`.cache/bsp_sysroot/`、約1.3GB、gitignore対象）は
+  Phase 8/9で再利用可能なため保持。アーカイブ本体（435MB）は削除済み。
+  Dockerコンテナも作業完了後に削除済み
+
 ## 次フェーズへの引き継ぎ
-- Phase 4（Chainプロトコル + デバイス出力）から着手。PLAN.md §1.2/§2.2 参照
+- Phase 5（配布プロトコル + TCP開発経路）から着手。PLAN.md §2.3 参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
-- `LlmCompleter` は未実装（上記Go/No-Go参照）。任意テキストヒント入力UIも同様に
-  未実装のまま次フェーズへ持ち越し
+- `LlmCompleter` は未実装（Phase 3のGo/No-Go参照）。任意テキストヒント入力UIも
+  同様に未実装のまま持ち越し
+- Chain Mono/RGBとの実機疎通・Monoのビット順確認は Phase 9（実機到着後）
