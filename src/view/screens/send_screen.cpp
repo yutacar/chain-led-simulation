@@ -11,11 +11,14 @@
 #include "theme.h"
 
 #include "core/animation_serializer.h"
+#include "fonts.h"
 #include "net/animation_transfer.h"
 #include "net/tcp_transport.h"
+#include "strings.h"
 
 #include <cstdio>
 #include <memory>
+#include <string>
 
 namespace screen {
 namespace {
@@ -36,35 +39,33 @@ void refresh(SendUi* ui) {
         return;
     }
 
-    char status_buf[80];
+    std::string status;
     if (ui->listen_failed) {
-        std::snprintf(status_buf, sizeof(status_buf), "Failed to open port %u", chainled::net::kDevTransferPort);
+        status = i18n::trf(i18n::StrId::SendFailedToOpenPort, chainled::net::kDevTransferPort);
     } else if (!ui->sender) {
-        std::snprintf(status_buf, sizeof(status_buf), "Waiting for connection on port %u...",
-                      chainled::net::kDevTransferPort);
+        status = i18n::trf(i18n::StrId::SendWaitingForConnection, chainled::net::kDevTransferPort);
     } else if (ui->sender->status() == chainled::net::TransferStatus::InProgress &&
                ui->transport->state() != chainled::net::TransportState::Connected) {
         // Only show "waiting" while nothing has happened yet -- once a
         // transfer reaches Done/Failed, keep showing that result even if
         // the receiver disconnects right after (expected: it's done too).
-        std::snprintf(status_buf, sizeof(status_buf), "Waiting for connection on port %u...",
-                      chainled::net::kDevTransferPort);
+        status = i18n::trf(i18n::StrId::SendWaitingForConnection, chainled::net::kDevTransferPort);
     } else {
         switch (ui->sender->status()) {
             case chainled::net::TransferStatus::InProgress:
-                std::snprintf(status_buf, sizeof(status_buf), "Sending... chunk %d/%d", ui->sender->chunks_acked(),
-                              ui->sender->total_chunks());
+                status = i18n::trf(i18n::StrId::SendSendingChunk, ui->sender->chunks_acked(),
+                                   ui->sender->total_chunks());
                 break;
             case chainled::net::TransferStatus::Done:
-                std::snprintf(status_buf, sizeof(status_buf), "Done! Sent %d/%d chunks", ui->sender->chunks_acked(),
-                              ui->sender->total_chunks());
+                status =
+                    i18n::trf(i18n::StrId::SendDone, ui->sender->chunks_acked(), ui->sender->total_chunks());
                 break;
             case chainled::net::TransferStatus::Failed:
-                std::snprintf(status_buf, sizeof(status_buf), "Transfer failed");
+                status = i18n::tr(i18n::StrId::TransferFailed);
                 break;
         }
     }
-    lv_label_set_text(ui->status_label, status_buf);
+    lv_label_set_text(ui->status_label, status.c_str());
 }
 
 void timer_cb(lv_timer_t* timer) {
@@ -111,24 +112,24 @@ void SendScreen::build_content(lv_obj_t* content) {
         ui->listen_failed = true;
     }
 
-    auto* small_font = assets().load_font("inter-regular.ttf", 12);
+    auto* small_font = i18n::font_for_size(12);
 
     auto* title = lv_label_create(content);
-    lv_label_set_text(title, "Send Animation");
-    lv_obj_set_style_text_font(title, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_label_set_text(title, i18n::tr(i18n::StrId::SendTitle));
+    lv_obj_set_style_text_font(title, small_font, 0);
     lv_obj_align(title, LV_ALIGN_TOP_LEFT, 4, 0);
     reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     ui->title_label = title;
 
     auto* status = lv_label_create(content);
-    lv_obj_set_style_text_font(status, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(status, small_font, 0);
     lv_obj_center(status);
     reactive::bind_theme(status, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     ui->status_label = status;
 
     auto* guide = lv_label_create(content);
-    lv_label_set_text(guide, "Esc: Cancel / Back");
-    lv_obj_set_style_text_font(guide, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_label_set_text(guide, i18n::tr(i18n::StrId::SendGuide));
+    lv_obj_set_style_text_font(guide, small_font, 0);
     lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
     lv_obj_align(guide, LV_ALIGN_BOTTOM_MID, 0, -4);
     reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);

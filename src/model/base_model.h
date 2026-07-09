@@ -14,6 +14,7 @@ enum class AppPage {
     Simulator = 2,
     Send      = 3,
     Receive   = 4,
+    Settings  = 5,
 };
 
 class BaseModel {

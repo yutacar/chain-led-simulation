@@ -9,6 +9,7 @@
 #include "editor_screen.h"
 #include "receive_screen.h"
 #include "send_screen.h"
+#include "settings_screen.h"
 #include "simulator_screen.h"
 #include "title_screen.h"
 
@@ -31,6 +32,13 @@ void current_page_observer(lv_observer_t* observer, lv_subject_t* subject) {
     manager->request_page(static_cast<model::AppPage>(lv_subject_get_int(subject)));
 }
 
+void language_version_observer(lv_observer_t* observer, lv_subject_t*) {
+    auto* manager = static_cast<ScreenManager*>(lv_observer_get_target(observer));
+    if (manager) {
+        manager->reload_current_screen();
+    }
+}
+
 /// Hold duration that separates "back one level" from "quit".
 constexpr uint32_t kEscLongPressMs = 1000;
 
@@ -48,6 +56,10 @@ ScreenManager::~ScreenManager() {
     if (page_observer_) {
         lv_observer_remove(page_observer_);
         page_observer_ = nullptr;
+    }
+    if (language_observer_) {
+        lv_observer_remove(language_observer_);
+        language_observer_ = nullptr;
     }
 
     // Screens hold raw lv_obj_t*s registered into input_group_; delete them
@@ -70,11 +82,19 @@ void ScreenManager::start() {
                                                          current_page_observer,
                                                          this,
                                                          nullptr);
+    language_observer_ = lv_subject_add_observer_with_target(view_model_.language_version_subject(),
+                                                              language_version_observer,
+                                                              this,
+                                                              nullptr);
     // Kick off the very first screen (Title) without waiting for a subject
     // change notification, since the subject already holds Title's value.
     show_screen_for_page(view_model_.current_page());
     loaded_page_ = view_model_.current_page();
     has_loaded_page_ = true;
+}
+
+void ScreenManager::reload_current_screen() {
+    show_screen_for_page(has_loaded_page_ ? loaded_page_ : view_model_.current_page());
 }
 
 void ScreenManager::request_page(model::AppPage page) {
@@ -116,6 +136,9 @@ void ScreenManager::show_screen_for_page(model::AppPage page) {
             break;
         case model::AppPage::Receive:
             load_screen(std::make_unique<screen::ReceiveScreen>(view_model_, assets_));
+            break;
+        case model::AppPage::Settings:
+            load_screen(std::make_unique<screen::SettingsScreen>(view_model_, assets_));
             break;
         case model::AppPage::Title:
         default:
@@ -207,6 +230,7 @@ void ScreenManager::handle_short_esc() {
             break;
         case model::AppPage::Send:
         case model::AppPage::Receive:
+        case model::AppPage::Settings:
             view_model_.show_page(model::AppPage::Title);
             break;
     }

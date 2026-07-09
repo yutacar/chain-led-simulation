@@ -11,6 +11,7 @@
 #include "app/paths.h"
 #include "core/animation_serializer.h"
 #include "generator/procedural_completer.h"
+#include "settings.h"
 
 #include <filesystem>
 
@@ -33,7 +34,8 @@ BaseViewModel::BaseViewModel()
     : dark_mode_subject_(model_.dark_mode()),
       current_page_subject_(page_to_int(model_.current_page())),
       quit_requested_subject_(false),
-      animation_dirty_subject_(0) {}
+      animation_dirty_subject_(0),
+      language_version_subject_(0) {}
 
 BaseViewModel::~BaseViewModel() = default;
 
@@ -53,6 +55,10 @@ lv_subject_t* BaseViewModel::animation_dirty_subject() {
     return animation_dirty_subject_.native();
 }
 
+lv_subject_t* BaseViewModel::language_version_subject() {
+    return language_version_subject_.native();
+}
+
 bool BaseViewModel::is_dark_mode() const {
     return model_.dark_mode();
 }
@@ -68,6 +74,13 @@ void BaseViewModel::show_page(model::AppPage page) {
 
 void BaseViewModel::request_quit() {
     quit_requested_subject_.set(true);
+}
+
+void BaseViewModel::set_language(i18n::Lang lang) {
+    i18n::save_language(lang);  // applies immediately + persists to disk
+    // Bump after saving, so ScreenManager's reload sees the already-applied
+    // language when it rebuilds the current screen.
+    language_version_subject_.set(language_version_subject_.value() + 1);
 }
 
 chainled::core::Rgb565 BaseViewModel::current_draw_color() const {

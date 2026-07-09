@@ -265,8 +265,105 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   ショットで確認（`docs/screenshots/proc_a_done.png`,
   `docs/screenshots/proc_b_editor.png`）
 
+## Phase 6: i18n（EN/JA/ZH） + 設定永続化（完了 2026-07-09）
+
+### 文字列カタログ + フォント基盤
+- `chainled_i18n`（headless: strings.cpp/strings_en/ja/zh.cpp/settings.cpp）と
+  `chainled_i18n_fonts`（LVGL + AssetManager依存: fonts.cpp）に分割。
+  Battleshipの `battleship_i18n`/`battleship_i18n_fonts` 分割と同じ理由
+  ——ユニットテストバイナリがLVGLを引きずり込まずに文字列カタログだけ
+  リンクできるようにするため
+- `StrId` enum + `tr()`（プレーン文字列）/`trf()`（printf風テンプレート、
+  可変長引数）の2関数構成。JA/ZHは語順がENと異なるため、呼び出し側が
+  英語順で組み立てた断片を後から結合する設計を避け、「これはNスロットの
+  テンプレートだ」とカタログ側で明示する方針（Battleshipと同じ設計判断）
+- `SettingsLanguageEnglish`/`Japanese`/`Chinese` の3エントリだけは
+  全言語テーブルで同じテキスト（"English"/"日本語"/"简体中文"）——
+  現在のUI言語に関わらず、Settings画面の各言語ボタンは常にその言語自身の
+  スクリプトで表示される（読めない言語のUIから自分の母語を探せるように）
+- `i18n::font_for_size(size)`（現在言語用）と
+  `i18n::font_for_language_and_size(lang, size)`（言語明示、Settings画面の
+  言語ボタン用）の2関数。英語は一切FreeTypeに触れず常にビットマップの
+  Montserratを使う設計に変更——既存画面が使っていた `assets().load_font(
+  "inter-*.ttf", size)` パターンはこのフェーズで全廃し、英語表示もMontserrat
+  に統一（デザイン上の後退ではなく、CJKフォールバックチェーンを
+  `cjk_font->fallback = latin_font` で組む都合上、全言語で同じフォールバック
+  先を使う方が実装がシンプルになるため）
+
+### CJK フォントサブセット
+- `tools/generate_cjk_fonts.py`（Battleshipの同名スクリプトを移植・簡略化。
+  ChainLEDには複数言語混在のcommentaryファイルが無いため
+  `SHARED_TEXT_SOURCES` 相当の処理は不要）。`strings_ja.cpp`/`strings_zh.cpp`
+  内の全`"..."`リテラルからCJK文字集合を収集し、Google Noto Sans JP/SC の
+  upstream SubsetOTFを`fonttools.subset`でさらに絞り込む
+- 実行には `pip install fonttools brotli` が必要（リポジトリには非同梱）。
+  一時venvで実行し、生成後は削除。結果: `NotoSansJP-Subset.otf` 32.0KB
+  （207文字）、`NotoSansSC-Subset.otf` 32.3KB（192文字）——
+  Battleshipの実測（本文中「50KB未満」の見積もり）と同オーダー
+- 生成物 (`assets/fonts/NotoSansJP-Subset.otf`, `NotoSansSC-Subset.otf`) は
+  リポジトリにコミットする実ファイル。`.cache/`（ダウンロードキャッシュ）は
+  既存の`.gitignore`で除外済み
+
+### ScreenManager: 言語切り替え時の画面再構築
+- `BaseViewModel::language_version_subject()`（dirty counterパターン、既存の
+  `animation_dirty_subject()`と同じ設計）を新設。`set_language()`は
+  `i18n::save_language()`で即座に適用+永続化した**後**にsubjectをbumpする
+  ——ScreenManagerのreloadが走った時点で新言語が既に反映済みであることを
+  保証するため
+- `ScreenManager::reload_current_screen()`: 現在ロード中のページを同じ
+  `AppPage`で`show_screen_for_page()`し直す（`BaseScreen`を新しいインスタンスで
+  作り直す）。`request_page()`はページ値が変わらないとno-opなので、
+  言語変更では使えない——これが専用メソッドを新設した理由
+- `ScreenManager::start()`で`language_version_subject()`にも観測者を追加
+  （`page_observer_`と同様、デストラクタでの解除も対称に追加）
+
+### Settingsスクリーン + Title統合
+- `SettingsScreen`新設: EN/JA/ZHの3言語ボタン + Back。現在の言語には
+  `palette.primary`色の2pxボーダーを付けて選択中であることを明示
+  （Editorのタイムラインで現在フレームを強調する既存パターンを流用）
+- 各言語ボタンのラベルは`font_for_language_and_size(lang, 12)`で描画——
+  UIが英語の状態でも「日本語」「简体中文」ボタンはちゃんとそのスクリプトで
+  読める（`font_for_size(12)`だとEN文脈ではMontserratになりCJKがtofuになる
+  ため、ここだけ明示的に言語を指定する必要がある）
+- 選択は即座に反映（`set_language()`→`language_version_subject`
+  bump→`reload_current_screen()`が同期的に走るため、ボタンを押した次の
+  フレームで画面全体が新言語で再描画される。実機画面でも確認済み——
+  `docs/screenshots/persist_select_ja.png`相当、確認後に削除）
+- `model::AppPage::Settings`追加、Titleに"Settings"ボタン追加、
+  `handle_short_esc()`にSettings→Titleのケース追加
+- Titleスクリーンはボタンが最大6個（New/Load/Send/Receive/Settings/Quit）に
+  増えたため、ボタン高さを20→18px、行間を3→2pxに詰めて320x170に収める
+  よう調整（実スクリーンショットで確認、オーバーフローなし）
+
+### 全画面の文言 i18n化
+- Title/Editor/Simulator/Send/Receive の全ハードコード文字列を`tr()`/`trf()`
+  呼び出しに置換。`snprintf`で組み立てていたテンプレート文字列
+  （`"Editor   Frame %d/%d"`等）は`trf()`（内部で2パス`vsnprintf`）に統一
+- `app.cpp`: `i18n::load_settings()`をUI構築前（`lv_init()`直後）に、
+  `i18n::init_fonts(assets)`を`AssetManager`構築直後に追加
+
+### 実機検証（3言語 × 5画面のスクリーンショット + 実プロセス永続化確認）
+- APP_SCRIPTで EN/JA/ZH それぞれ Title/Editor/Simulator/Send/Settings
+  （+ EN のみ Receive）をスクリーンショット確認。tofu・レイアウト崩れなし
+  （`docs/screenshots/{title,editor,simulator,send,settings}_{en,ja,zh}.png`,
+  `receive_en.png`）
+- **検証手順の教訓（Phase 5と同種）**: 最初300msディレイでesc連打の
+  スクリプトを組んだところ、2回目のescが「効かない」ように見えるバグに
+  見えた（Simulator→Editorで止まり、Editor→Titleまで進まない）。
+  デバッグの結果、SDLキーボードドライバのpress/release疑似生成
+  （`lv_sdl_keyboard_read`のdummy_readパターン）自体は正しく動作しており、
+  単に300ms×連続2回のescではスクリプト側のマージン不足だっただけと判明
+  （600msに広げたら即座に正しく動作）。**コードのバグではなくテスト
+  タイミングの問題**——Phase 5の教訓がここでも再現した形
+- UI経由（コード手動操作ではなく実際にSettings画面でJAボタンをEnter）で
+  言語選択→`settings.conf`に`language=ja`が書き込まれることを確認、
+  同じ`XDG_CONFIG_HOME`で再起動して初期画面が自動的に日本語になることを
+  確認（`load_settings()`のユニットテスト`SaveThenLoadRoundTripsLanguage`と
+  同じ経路を実プロセスで再確認した形）
+- 全107テストgreen（Phase5までの93 + i18nカタログ7 + 設定永続化7）
+
 ## 次フェーズへの引き継ぎ
-- Phase 6（i18n: EN/JA/ZH + 設定永続化）から着手。PLAN.md §2.5/Phase 6 参照
+- Phase 7（BLE配布）から着手。PLAN.md §2.3/Phase 7 参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
 - `LlmCompleter` は未実装（Phase 3のGo/No-Go参照）。任意テキストヒント入力UIも
@@ -278,3 +375,6 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   （送信側が先にlisten()していない状態で受信側がconnect()すると繋がらないまま
   になる）。2プロセス検証では起動順序で回避したが、UI側での再試行/
   再接続ボタンは将来の改善余地として残っている
+- 新しいCJK文字（新規StrId追加時など）を`strings_ja.cpp`/`strings_zh.cpp`に
+  加えたら`tools/generate_cjk_fonts.py`の再実行を忘れずに（`pip install
+  fonttools brotli`が必要、CIでの自動チェックは無し）

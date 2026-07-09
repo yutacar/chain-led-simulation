@@ -12,9 +12,12 @@
 #include "theme.h"
 
 #include "chain/real_chain_output.h"
+#include "fonts.h"
+#include "strings.h"
 
 #include <cstdio>
 #include <memory>
+#include <string>
 
 namespace screen {
 namespace {
@@ -41,9 +44,10 @@ struct SimulatorUi {
 
 const char* real_output_status(const SimulatorUi* ui) {
     if (!ui->real_output_enabled) {
-        return "OFF";
+        return i18n::tr(i18n::StrId::SimulatorRealOff);
     }
-    return (ui->real_output && ui->real_output->is_connected()) ? "ON" : "no device";
+    return (ui->real_output && ui->real_output->is_connected()) ? i18n::tr(i18n::StrId::SimulatorRealOn)
+                                                                 : i18n::tr(i18n::StrId::SimulatorRealNoDevice);
 }
 
 void render(SimulatorUi* ui) {
@@ -63,14 +67,13 @@ void render(SimulatorUi* ui) {
         ui->real_output->show_frame(frame, ui->mono);
     }
 
-    char title_buf[48];
-    std::snprintf(title_buf, sizeof(title_buf), "Simulator   Frame %d/%d  [%s]", ui->preview_index + 1,
-                  animation.frame_count(), ui->mono ? "Mono" : "RGB");
-    lv_label_set_text(ui->title_label, title_buf);
+    const std::string title = i18n::trf(i18n::StrId::SimulatorTitle, ui->preview_index + 1, animation.frame_count(),
+                                        ui->mono ? i18n::tr(i18n::StrId::SimulatorModeMono)
+                                                 : i18n::tr(i18n::StrId::SimulatorModeRgb));
+    lv_label_set_text(ui->title_label, title.c_str());
 
-    char guide_buf[64];
-    std::snprintf(guide_buf, sizeof(guide_buf), "M:Mono/RGB  R:Real[%s]  Esc:Back", real_output_status(ui));
-    lv_label_set_text(ui->guide_label, guide_buf);
+    const std::string guide = i18n::trf(i18n::StrId::SimulatorGuide, real_output_status(ui));
+    lv_label_set_text(ui->guide_label, guide.c_str());
 }
 
 void timer_cb(lv_timer_t* timer) {
@@ -124,10 +127,10 @@ void SimulatorScreen::build_content(lv_obj_t* content) {
     ui->view_model = &view_model();
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
-    auto* small_font = assets().load_font("inter-regular.ttf", 12);
+    auto* small_font = i18n::font_for_size(12);
 
     auto* title = lv_label_create(content);
-    lv_obj_set_style_text_font(title, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(title, small_font, 0);
     lv_obj_align(title, LV_ALIGN_TOP_LEFT, 4, 0);
     reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     ui->title_label = title;
@@ -139,7 +142,7 @@ void SimulatorScreen::build_content(lv_obj_t* content) {
     lv_group_add_obj(BaseScreen::shared_group(), ui->grid.container);
 
     auto* guide = lv_label_create(content);
-    lv_obj_set_style_text_font(guide, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(guide, small_font, 0);
     lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
     lv_obj_align(guide, LV_ALIGN_BOTTOM_MID, 0, -4);
     reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);

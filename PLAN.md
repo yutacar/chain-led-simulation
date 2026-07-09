@@ -170,7 +170,7 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 | **3. 残りコマ自動生成（Rev.2 新設）** | ✅ 完了。`ProceduralCompleter` 実装 + Go/No-Go実測 → **No-Go判定**（`LlmCompleter` は未実装、詳細は NOTES.md） | `ProceduralCompleter` で1枚目→残りコマ生成のテスト green ✅（10テスト）。Go/No-Go実測・判断理由を NOTES.md に記録 ✅ |
 | **4. Chain プロトコル + デバイス出力** | ✅ 完了。UART フレームのエンコード/デコード実装、`RealChainOutput`（Linux termios）実装、Mono/RGB 変換、Simulator画面に実機出力ON/OFF統合 | プロトコル単体テスト green ✅（17テスト）、CM0クロスビルド成功 ✅（Docker+BSP、循環リンクの実バグを発見・修正。詳細NOTES.md）。実機との実通信検証は Phase 9 |
 | **5. 配布プロトコル + TCP開発経路** | ✅ 完了。チャンク転送プロトコル + 再送層 + `LoopbackTransport`/`TcpTransport` 実装、Send/Receive UI | 2プロセス（Mac）でアニメーション転送が完走 ✅、ロス注入テスト green ✅（実プロセス検証で実バグ2件発見・修正、詳細NOTES.md） |
-| **6. i18n + 設定永続化** | 文字列カタログ（EN/JA/ZH）、CJK フォントサブセット、設定ファイル永続化 | 3言語で全画面スクショOK、設定が再起動後も保持 |
+| **6. i18n + 設定永続化** | ✅ 完了。文字列カタログ（EN/JA/ZH, `chainled_i18n`）、CJK フォントサブセット（`tools/generate_cjk_fonts.py` で生成、各32KB）、設定ファイル永続化（`~/.config/chainled/settings.conf`）、Settingsスクリーン（選択即反映） | 3言語で全画面スクショOK ✅（`docs/screenshots/{title,editor,simulator,send,settings}_{en,ja,zh}.png`）、設定がUI選択→プロセス再起動でも保持されることを実プロセスで確認 ✅（詳細NOTES.md） |
 | **7. BLE 配布（実機・デフォルト経路）** | `BleTransport` 実装（BlueZ D-Bus、NUS互換GATT） | ヘッドレステスト green + デバイスビルド成功（実機2台での実配布は Phase 9） |
 | **8. パッケージング** | APPLaunch 準拠 .deb 化、app-builder.json、prepublish_check、（Go判定時）LLMモデル同梱なし運用のREADME整備 | prepublish 全パス |
 | **9. 実機検証 → publish** | CardputerZero実機 + Chain Mono/RGB 実機での動作確認（UART出力・BLE配布・Esc規約・LlmCompleter実測等）、czdev publish | 実機チェックリスト完走、PR 提出 |

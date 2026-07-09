@@ -12,8 +12,11 @@
 #include "theme.h"
 
 #include "core/animation.h"
+#include "fonts.h"
+#include "strings.h"
 
 #include <cstdio>
+#include <string>
 
 namespace screen {
 namespace {
@@ -50,18 +53,19 @@ void refresh_ui(EditorUi* ui) {
     const auto& animation = vm.animation();
     const int current = vm.current_frame_index();
 
-    char title_buf[48];
-    std::snprintf(title_buf, sizeof(title_buf), "Editor   Frame %d/%d", current + 1, animation.frame_count());
-    lv_label_set_text(ui->title_label, title_buf);
+    const std::string title = i18n::trf(i18n::StrId::EditorTitle, current + 1, animation.frame_count());
+    lv_label_set_text(ui->title_label, title.c_str());
 
     view::widgets::refresh_pixel_grid(ui->grid, animation.frame(current), palette, vm.cursor_x(), vm.cursor_y());
 
     lv_obj_set_style_bg_color(ui->color_swatch, view::widgets::rgb565_to_lv_color(vm.current_draw_color()), 0);
 
-    char status_buf[64];
-    std::snprintf(status_buf, sizeof(status_buf), "%dms (+/-)   %s", animation.frame_duration_ms(current),
-                  ui->show_saved ? "Saved" : "");
-    lv_label_set_text(ui->status_label, status_buf);
+    std::string status = i18n::trf(i18n::StrId::EditorDurationHint, animation.frame_duration_ms(current));
+    if (ui->show_saved) {
+        status += "   ";
+        status += i18n::tr(i18n::StrId::EditorSaved);
+    }
+    lv_label_set_text(ui->status_label, status.c_str());
 
     for (int i = 0; i < chainled::core::kMaxFrames; ++i) {
         auto& thumb = ui->thumbnails[i];
@@ -188,11 +192,11 @@ void EditorScreen::build_content(lv_obj_t* content) {
     ui->view_model = &view_model();
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
-    auto* small_font = assets().load_font("inter-regular.ttf", 12);
+    auto* small_font = i18n::font_for_size(12);
 
     // ---- Title / frame indicator ----
     auto* title = lv_label_create(content);
-    lv_obj_set_style_text_font(title, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(title, small_font, 0);
     lv_obj_align(title, LV_ALIGN_TOP_LEFT, 4, 0);
     reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     ui->title_label = title;
@@ -224,8 +228,8 @@ void EditorScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(swatch_row, LV_OBJ_FLAG_SCROLLABLE);
 
     auto* swatch_label = lv_label_create(swatch_row);
-    lv_label_set_text(swatch_label, "Color:");
-    lv_obj_set_style_text_font(swatch_label, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_label_set_text(swatch_label, i18n::tr(i18n::StrId::EditorColorLabel));
+    lv_obj_set_style_text_font(swatch_label, small_font, 0);
     reactive::bind_theme(swatch_label, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
 
     auto* swatch = lv_obj_create(swatch_row);
@@ -238,16 +242,16 @@ void EditorScreen::build_content(lv_obj_t* content) {
     lv_obj_set_style_border_color(swatch, view::palette(view_model().is_dark_mode()).border, 0);
     ui->color_swatch = swatch;
 
-    const char* guide_lines[] = {
-        "Arrows:Move  Enter:Toggle  C:Color",
-        "F/V:Flip  N:New  D:Dup  Bksp:Del",
-        "+/-:Duration  S:Save  P:Play",
-        "G:Generate 10 frames from this one",
+    const i18n::StrId guide_lines[] = {
+        i18n::StrId::EditorGuideMove,
+        i18n::StrId::EditorGuideFrameOps,
+        i18n::StrId::EditorGuideDurationSave,
+        i18n::StrId::EditorGuideGenerate,
     };
-    for (const auto* line : guide_lines) {
+    for (const auto line_id : guide_lines) {
         auto* guide = lv_label_create(panel);
-        lv_label_set_text(guide, line);
-        lv_obj_set_style_text_font(guide, small_font ? small_font : &lv_font_montserrat_12, 0);
+        lv_label_set_text(guide, i18n::tr(line_id));
+        lv_obj_set_style_text_font(guide, small_font, 0);
         lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
         reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     }
@@ -261,7 +265,7 @@ void EditorScreen::build_content(lv_obj_t* content) {
 
     // ---- Bottom status: current frame duration + save confirmation ----
     auto* status = lv_label_create(content);
-    lv_obj_set_style_text_font(status, small_font ? small_font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(status, small_font, 0);
     lv_obj_align(status, LV_ALIGN_BOTTOM_LEFT, 4, -4);
     reactive::bind_theme(status, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     ui->status_label = status;

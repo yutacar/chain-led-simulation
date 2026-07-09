@@ -493,15 +493,30 @@ target_link_libraries(${PROJECT_NAME}_view
 )
 
 # ====================================================
+# chainled_paths sources
+# - Where the app keeps its own files ($HOME/.config/chainled/...): the
+#   animation save file (app/paths.h) and, from Phase 6, settings.conf
+#   (i18n/settings.cpp). Zero dependencies beyond std::filesystem, so any
+#   layer can depend on it without risking a link cycle (see the
+#   REMOVE_ITEM comment above).
+# ====================================================
+add_library(chainled_paths STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/paths.cpp"
+)
+
+target_include_directories(chainled_paths
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_compile_features(chainled_paths PUBLIC cxx_std_17)
+
+# ====================================================
 # ViewModel sources
 # ====================================================
 file(GLOB_RECURSE VIEWMODEL_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/viewmodel/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/viewmodel/*.cpp"
-)
-# See the matching REMOVE_ITEM comment on APP_SOURCES above.
-list(APPEND VIEWMODEL_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/paths.cpp"
 )
 
 add_library(${PROJECT_NAME}_viewmodel
@@ -522,6 +537,7 @@ target_link_libraries(${PROJECT_NAME}_viewmodel
         ${PROJECT_NAME}_reactive
         ${PROJECT_NAME}_model
         ${PROJECT_NAME}_platform
+        chainled_paths
 )
 
 
@@ -537,14 +553,20 @@ file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/*.cpp"
 )
-# app/paths.* is compiled into ${PROJECT_NAME}_viewmodel instead (see below):
-# BaseViewModel calls app::config_dir()/default_animation_save_path(), and
-# ${PROJECT_NAME}_core already links ${PROJECT_NAME}_viewmodel (ScreenManager
-# needs BaseViewModel), so leaving paths.cpp's *object* in this target would
-# create a viewmodel<->core link cycle. macOS's ld64 tolerates that; GNU ld
-# (the CM0 cross build) does not -- caught building for the device target.
+# app/paths.* and app/asset_manager.* are their own tiny standalone
+# libraries (chainled_paths, chainled_assets -- see below), not part of
+# this glob. Same reasoning both times: ${PROJECT_NAME}_core already links
+# ${PROJECT_NAME}_viewmodel (ScreenManager needs BaseViewModel), and Phase 6
+# needs both BaseViewModel (chainled_i18n, for save_language) and screens
+# (chainled_view, via chainled_i18n_fonts) to reach these; compiling either
+# file's object into *this* target would recreate the viewmodel/view<->core
+# link cycle GNU ld caught in Phase 4 (macOS's ld64 tolerates it, GNU ld --
+# the CM0 cross build -- does not). Standalone libraries any layer can
+# depend on sidestep the cycle entirely instead of compiling the same file
+# into whichever target happens to need it first.
 list(REMOVE_ITEM APP_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/paths.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/asset_manager.cpp"
 )
 
 file(GLOB_RECURSE LOGGER_SOURCES CONFIGURE_DEPENDS
@@ -566,6 +588,35 @@ target_link_libraries(logger
         fmt::fmt
     PRIVATE
         ${PLATFORM_LIBS}
+)
+
+# ====================================================
+# chainled_assets sources
+# - AssetManager (font/image loading). Standalone for the same reason as
+#   chainled_paths above: chainled_i18n_fonts needs it, and linking through
+#   ${PROJECT_NAME}_core would recreate the Phase 4 link cycle.
+# ====================================================
+add_library(chainled_assets STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/asset_manager.cpp"
+)
+
+target_include_directories(chainled_assets
+    PUBLIC
+        ${LVGL_INCLUDE_DIR}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/app"
+)
+
+target_compile_definitions(chainled_assets
+    PUBLIC
+        APP_NAME="${APP_NAME}"
+        APP_CMAKE_ASSETS_ROOT="${APP_ASSETS_ROOT}"
+        APP_SOURCE_ASSETS_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/assets"
+)
+
+target_link_libraries(chainled_assets
+    PUBLIC
+        lvgl
+        logger
 )
 
 add_library(${PROJECT_NAME}_core STATIC
@@ -601,6 +652,7 @@ target_link_libraries(${PROJECT_NAME}_core
         ${PROJECT_NAME}_view
         ${PROJECT_NAME}_viewmodel
         ${PROJECT_NAME}_platform
+        chainled_assets
 )
 
 # ====================================================
@@ -738,6 +790,73 @@ target_compile_features(chainled_net PUBLIC cxx_std_17)
 target_link_libraries(${PROJECT_NAME}_view
     PUBLIC
         chainled_net
+)
+
+# ====================================================
+# chainled_i18n sources
+# - String catalog (EN/JA/ZH) + settings.conf persistence (PLAN.md Phase 6).
+#   Headless (no LVGL) so the unit-test binary can link it without dragging
+#   in LVGL -- fonts.cpp (LVGL + AssetManager dependent) is the separate
+#   chainled_i18n_fonts target below, mirroring Battleship's
+#   battleship_i18n / battleship_i18n_fonts split.
+# - Namespace: i18n
+# ====================================================
+add_library(chainled_i18n STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/strings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/strings_en.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/strings_ja.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/strings_zh.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/settings.cpp"
+)
+
+target_include_directories(chainled_i18n
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_link_libraries(chainled_i18n
+    PUBLIC
+        chainled_paths
+)
+
+target_compile_features(chainled_i18n PUBLIC cxx_std_17)
+
+add_library(chainled_i18n_fonts STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/fonts.cpp"
+)
+
+target_include_directories(chainled_i18n_fonts
+    PUBLIC
+        ${LVGL_INCLUDE_DIR}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n"
+)
+
+target_link_libraries(chainled_i18n_fonts
+    PUBLIC
+        chainled_i18n
+        chainled_assets
+        lvgl
+)
+
+target_compile_features(chainled_i18n_fonts PUBLIC cxx_std_17)
+
+# BaseViewModel calls i18n::save_language(); screens call tr()/trf()/
+# font_for_size().
+target_link_libraries(${PROJECT_NAME}_viewmodel
+    PUBLIC
+        chainled_i18n
+)
+target_link_libraries(${PROJECT_NAME}_view
+    PUBLIC
+        chainled_i18n
+        chainled_i18n_fonts
+)
+# app.cpp calls i18n::load_settings() and i18n::init_fonts().
+target_link_libraries(${PROJECT_NAME}_core
+    PUBLIC
+        chainled_i18n
+        chainled_i18n_fonts
 )
 
 # Package deb

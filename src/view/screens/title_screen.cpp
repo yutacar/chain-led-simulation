@@ -10,6 +10,9 @@
 #include "bindings.h"
 #include "theme.h"
 
+#include "fonts.h"
+#include "strings.h"
+
 namespace screen {
 namespace {
 
@@ -48,13 +51,19 @@ void receive_cb(lv_event_t* event) {
     }
 }
 
-lv_obj_t* make_menu_button(lv_obj_t* parent, app::AssetManager& assets, const char* text) {
+void settings_cb(lv_event_t* event) {
+    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
+    if (view_model) {
+        view_model->show_page(model::AppPage::Settings);
+    }
+}
+
+lv_obj_t* make_menu_button(lv_obj_t* parent, const char* text) {
     auto* button = lv_button_create(parent);
-    lv_obj_set_size(button, 160, 20);
+    lv_obj_set_size(button, 160, 18);
     auto* label = lv_label_create(button);
     lv_label_set_text(label, text);
-    auto* font = assets.load_font("inter-regular.ttf", 12);
-    lv_obj_set_style_text_font(label, font ? font : &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, i18n::font_for_size(12), 0);
     lv_obj_center(label);
     return button;
 }
@@ -70,10 +79,9 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
     auto* title = lv_label_create(content);
-    lv_label_set_text(title, "Chain LED Simulation");
-    auto* title_font = assets().load_font("inter-semibold.ttf", 18);
-    lv_obj_set_style_text_font(title, title_font ? title_font : &lv_font_montserrat_18, 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 14);
+    lv_label_set_text(title, i18n::tr(i18n::StrId::AppTitle));
+    lv_obj_set_style_text_font(title, i18n::font_for_size(18), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
     reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
 
     auto* menu = lv_obj_create(content);
@@ -81,11 +89,11 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_set_size(menu, 160, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(menu, 3, 0);
+    lv_obj_set_style_pad_row(menu, 2, 0);
     lv_obj_clear_flag(menu, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(menu, LV_ALIGN_CENTER, 0, 6);
+    lv_obj_align(menu, LV_ALIGN_CENTER, 0, 4);
 
-    auto* new_button = make_menu_button(menu, assets(), "New Animation");
+    auto* new_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleNewAnimation));
     reactive::bind_theme(new_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(new_button, new_animation_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(new_button);
@@ -94,35 +102,40 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_t* default_focus = new_button;
 
     if (view_model().has_saved_animation()) {
-        auto* load_button = make_menu_button(menu, assets(), "Load Animation");
+        auto* load_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleLoadAnimation));
         reactive::bind_theme(load_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
         lv_obj_add_event_cb(load_button, load_animation_cb, LV_EVENT_CLICKED, &view_model());
         BaseScreen::enable_arrow_focus_navigation(load_button);
         lv_group_add_obj(BaseScreen::shared_group(), load_button);
     }
 
-    auto* send_button = make_menu_button(menu, assets(), "Send Animation (LAN)");
+    auto* send_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendAnimation));
     reactive::bind_theme(send_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(send_button, send_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(send_button);
     lv_group_add_obj(BaseScreen::shared_group(), send_button);
 
-    auto* receive_button = make_menu_button(menu, assets(), "Receive Animation (LAN)");
+    auto* receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleReceiveAnimation));
     reactive::bind_theme(receive_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(receive_button, receive_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(receive_button);
     lv_group_add_obj(BaseScreen::shared_group(), receive_button);
 
-    auto* quit_button = make_menu_button(menu, assets(), "Quit");
+    auto* settings_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSettings));
+    reactive::bind_theme(settings_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
+    lv_obj_add_event_cb(settings_button, settings_cb, LV_EVENT_CLICKED, &view_model());
+    BaseScreen::enable_arrow_focus_navigation(settings_button);
+    lv_group_add_obj(BaseScreen::shared_group(), settings_button);
+
+    auto* quit_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleQuit));
     reactive::bind_theme(quit_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(quit_button, quit_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(quit_button);
     lv_group_add_obj(BaseScreen::shared_group(), quit_button);
 
     auto* guide = lv_label_create(content);
-    lv_label_set_text(guide, "Enter: Select   Esc (hold) / Home: Quit");
-    auto* guide_font = assets().load_font("inter-regular.ttf", 12);
-    lv_obj_set_style_text_font(guide, guide_font ? guide_font : &lv_font_montserrat_12, 0);
+    lv_label_set_text(guide, i18n::tr(i18n::StrId::TitleGuide));
+    lv_obj_set_style_text_font(guide, i18n::font_for_size(12), 0);
     lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
     lv_obj_align(guide, LV_ALIGN_BOTTOM_MID, 0, -4);
     reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);

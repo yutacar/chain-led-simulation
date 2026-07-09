@@ -28,6 +28,12 @@ public:
     void flush_requested_page();
     lv_obj_t* current_screen() const;
 
+    /// Rebuilds whatever screen is currently loaded from scratch (same
+    /// page, brand-new BaseScreen instance). Used after a language change
+    /// so every label re-reads tr()/trf() immediately -- request_page()
+    /// alone would no-op here since the page value itself doesn't change.
+    void reload_current_screen();
+
     /// Shared keypad focus group used by every screen (arrow keys move focus
     /// between focusable widgets, Enter/OK activates them). Must be attached
     /// to the keypad indev by the caller (see app.cpp) so it works
@@ -61,6 +67,7 @@ private:
     lv_group_t* input_group_ = nullptr;
     std::unique_ptr<screen::BaseScreen> current_screen_;
     lv_observer_t* page_observer_ = nullptr;
+    lv_observer_t* language_observer_ = nullptr;
     model::AppPage requested_page_ = model::AppPage::Title;
     model::AppPage loaded_page_ = model::AppPage::Title;
     bool has_loaded_page_ = false;

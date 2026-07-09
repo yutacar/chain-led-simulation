@@ -3,10 +3,9 @@
  *
  * SPDX-License-Identifier: MIT
  *
- * Where the app keeps its own files on disk ($HOME/.config/chainled/...).
- * Full settings.conf key=value persistence is Phase 6 (i18n); for now this
- * only locates the single working animation save file the Editor/Title
- * screens read and write.
+ * Where the app keeps its own files on disk: $XDG_CONFIG_HOME/chainled/ if
+ * set, else $HOME/.config/chainled/. Used for the single working animation
+ * save file (this header) and i18n/settings.conf (src/i18n/settings.h).
  */
 #pragma once
 

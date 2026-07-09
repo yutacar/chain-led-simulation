@@ -7,10 +7,12 @@
 #include "app.h"
 
 #include "asset_manager.h"
+#include "fonts.h"
 #include "logger.h"
 #include "linux_input.h"
 #include "screen_manager.h"
 #include "screenshot.h"
+#include "settings.h"
 #include "base_viewmodel.h"
 #include "theme.h"
 
@@ -226,6 +228,11 @@ int Application::run() {
 
     lv_init();
 
+    // Must happen before any screen is built, so every tr()/trf() call
+    // during the very first screen construction already sees the saved
+    // language.
+    i18n::load_settings();
+
     lv_indev_t* keypad_indev = nullptr;
     auto* display = init_display(&keypad_indev);
     if (!display) {
@@ -237,6 +244,7 @@ int Application::run() {
     for (const auto& root : assets.roots()) {
         LOG_INFO("asset root: {}", root.string());
     }
+    i18n::init_fonts(assets);
 
     viewmodel::BaseViewModel view_model;
     view::apply_lvgl_theme(display, view_model.is_dark_mode());

@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT
 #
 # Unit tests for chainled_animation_core, chainled_generator, chainled_chain,
-# and chainled_net. Desktop-only (see parent CMakeLists.txt); GoogleTest is
-# fetched the same way LVGL is fetched in the top-level file.
+# chainled_net, and chainled_i18n. Desktop-only (see parent CMakeLists.txt);
+# GoogleTest is fetched the same way LVGL is fetched in the top-level file.
 
 include(FetchContent)
 
@@ -32,6 +32,8 @@ add_executable(chainled_animation_core_tests
     test_loopback_transport.cpp
     test_tcp_transport.cpp
     test_animation_transfer.cpp
+    test_i18n_catalog.cpp
+    test_i18n_settings.cpp
 )
 
 target_link_libraries(chainled_animation_core_tests
@@ -40,6 +42,7 @@ target_link_libraries(chainled_animation_core_tests
         chainled_generator
         chainled_chain
         chainled_net
+        chainled_i18n
         GTest::gtest
         GTest::gtest_main
 )

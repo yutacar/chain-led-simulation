@@ -10,6 +10,7 @@
 #include "base_model.h"
 
 #include "core/animation.h"
+#include "strings.h"
 
 #include "lvgl.h"
 
@@ -32,12 +33,18 @@ public:
     /// the same "dirty counter" pattern used throughout this codebase rather
     /// than a subject per field.
     lv_subject_t* animation_dirty_subject();
+    /// Bumped on every language change. ScreenManager observes this and
+    /// rebuilds the current screen in place so every tr()/trf() call
+    /// re-reads the new language immediately ("selection takes effect
+    /// right away" -- see PLAN.md Phase 6).
+    lv_subject_t* language_version_subject();
 
     // ---- App-level ----
     bool is_dark_mode() const;
     model::AppPage current_page() const;
     void show_page(model::AppPage page);
     void request_quit();
+    void set_language(i18n::Lang lang);
 
     // ---- Animation data access ----
     const chainled::core::Animation& animation() const { return animation_; }
@@ -95,6 +102,7 @@ private:
     reactive::IntSubject current_page_subject_;
     reactive::BoolSubject quit_requested_subject_;
     reactive::IntSubject animation_dirty_subject_;
+    reactive::IntSubject language_version_subject_;
 };
 
 } // namespace viewmodel
