@@ -109,13 +109,21 @@ void TitleScreen::build_content(lv_obj_t* content) {
         lv_group_add_obj(BaseScreen::shared_group(), load_button);
     }
 
+#if CHAINLED_BLE
+    auto* send_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendAnimationBle));
+#else
     auto* send_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendAnimation));
+#endif
     reactive::bind_theme(send_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(send_button, send_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(send_button);
     lv_group_add_obj(BaseScreen::shared_group(), send_button);
 
+#if CHAINLED_BLE
+    auto* receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleReceiveAnimationBle));
+#else
     auto* receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleReceiveAnimation));
+#endif
     reactive::bind_theme(receive_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
     lv_obj_add_event_cb(receive_button, receive_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(receive_button);

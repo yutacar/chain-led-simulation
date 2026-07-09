@@ -31,6 +31,8 @@ enum class StrId {
     TitleLoadAnimation,
     TitleSendAnimation,
     TitleReceiveAnimation,
+    TitleSendAnimationBle,     ///< device build (CHAINLED_BLE): "Send Animation (BLE)"
+    TitleReceiveAnimationBle,  ///< device build (CHAINLED_BLE): "Receive Animation (BLE)"
     TitleSettings,
     TitleQuit,
     TitleGuide,
@@ -58,6 +60,8 @@ enum class StrId {
     SendTitle,
     SendFailedToOpenPort,    ///< template, %u = port
     SendWaitingForConnection,///< template, %u = port
+    SendBleAdvertising,      ///< template, %s = advertised BLE name (device build only)
+    SendBleUnavailable,      ///< device build only: no BlueZ adapter/bluetoothd
     SendSendingChunk,        ///< template, %d/%d = chunk/total
     SendDone,                ///< template, %d/%d = chunk/total
     SendGuide,
@@ -65,6 +69,8 @@ enum class StrId {
     // ---- Receive screen ----
     ReceiveTitle,
     ReceiveConnecting,       ///< template, %u = port
+    ReceiveBleScanning,      ///< device build only: scanning for a BLE host
+    ReceiveBleUnavailable,   ///< device build only: no BlueZ adapter/bluetoothd
     ReceiveReceivingChunk,   ///< template, %d/%d = chunk/total
     ReceiveWaitingForSender,
     ReceiveDone,

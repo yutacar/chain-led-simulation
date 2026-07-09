@@ -362,19 +362,108 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   同じ経路を実プロセスで再確認した形）
 - 全107テストgreen（Phase5までの93 + i18nカタログ7 + 設定永続化7）
 
+## Phase 7: BLE 配布（完了 2026-07-09）
+
+### Battleship の実装調査 → 移植方針
+- 着手前にサブエージェントで Battleship の `src/net/ble/ble_transport.{h,cpp}`
+  （sd-bus/BlueZ D-Bus、NUS互換GATT、912行）を詳細調査。結論:
+  **アーキテクチャはそのまま移植可能**（`ITransport`実装、Host=peripheral/
+  Join=central の役割分担、NUS標準UUID採用、`BleScanner`による探索）だが、
+  **ペイロードサイズの前提が違う**——Battleshipは対戦メッセージが最大13バイトで
+  「MTU未交渉のBLE既定20バイトに必ず収まる」ため無分割設計（`kBleSingleWriteLimit
+  =20`の`static_assert`）。ChainLEDのアニメーションChunkフレームは
+  `kChunkDataSize=200`（animation_transfer.h）により実測最大約210バイト/フレーム
+  ——単純にBattleshipのコードをコピーするだけでは送れない
+- **フラグメンテーション設計判断**: `kChunkDataSize`を縮小して1フレームを
+  20バイト以下に収める案は却下——`Announce`メッセージの`total_chunks`が
+  uint8_t(最大255)のため、10フレーム全画素点灯時の実測シリアライズサイズ
+  2720バイト（実測、`animation_to_text()`で確認）を20バイトチャンクに割ると
+  272チャンクとなり**既存の255上限を超えて壊れる**。MTU交渉に賭ける案
+  （BlueZは通常大きめのATT_MTUを自動交渉するが、実機で検証不能なため賭けは
+  避けたい）も却下。**採用**: `BleTransport::send()`内部で
+  `kBleFragmentSize=18`バイトごとに分割し、複数回のGATT
+  Write/Notifyを発行する方式。フラグメント境界にヘッダは一切付けない
+  ——ATT配送は単一コネクション上で順序保証されており、`FrameDecoder`は
+  TCPのストリーム分割と同様バイト列の切れ目に一切依存しないため
+  （magic+CRC16での自己同期）、これで正しく動作する。個々のフラグメントが
+  ロスしても外側のChunk/ChunkAckタイムアウト再送層（Phase 5でロス注入
+  ソークテスト済み）がフレーム単位で再送するため、BLE層自体には
+  Indicate/確認応答などの追加信頼性機構は不要と判断（シンプルさ優先）
+
+### 実装
+- `src/net/ble/ble_transport.{h,cpp}`: Battleshipの実装を
+  `chainled::net`名前空間・`CHAINLED_`命名規約・`/com/chainled/gatt`
+  オブジェクトパスに置き換えて移植。NUS UUID（`6e400001..003-...`）は
+  標準規格のためそのまま流用。広告名プレフィックスは`"CHAINLED-"`
+  （v1はニックネーム設定UIがないため、固定サフィックス`"cardputerzero"`を
+  付与——複数台が同名で広告しても後述の「最初に見つかったホストに自動
+  join」方針では問題にならない）
+- `BleTransport`: `start_host()`(peripheral) / `start_join(device_path)`
+  (central)。`send()`は`kBleFragmentSize`ごとに分割し、host役は
+  `sd_bus_emit_properties_changed`によるNotify、join役は
+  `WriteValue`（`type: command`、write-without-response）を繰り返す
+- `BleScanner`: NUSサービスUUID or 名前プレフィックスでフィルタした
+  LE discovery。1秒間隔で`GetManagedObjects`を再列挙
+- CMake: `CHAINLED_BLE`オプション新設（Battleshipの`BATTLESHIP_BLE`と
+  同一方針——`CMAKE_SYSTEM_NAME STREQUAL "Linux"`でON既定、それ以外は
+  OFF既定・強制ONはFATAL_ERROR）。`src/net/ble/`を`chainled_net`の
+  グロブから除外し`if(CHAINLED_BLE)`内で明示的に`target_sources`
+  追加、デスクトップ(macOS)ビルドではsd-bus/BlueZヘッダに一切触れない
+  ことをビルドで確認済み。sd-bus依存はCM0クロスビルド時はBSP
+  sysroot内の`libsystemd-dev`相当（`systemd/sd-bus.h`, `libsystemd.so`）を
+  `cm0_find_header`/`cm0_find_library`で解決——**Phase 4で展開した
+  `.cache/bsp_sysroot/`に両方とも既に含まれていたため追加取得不要**
+  （`find /path -iname "*sd-bus*"`で事前確認）
+- Send/Receive画面: `ITransport`型の共通ポインタに一般化し
+  （従来は`TcpTransport`の具象型だった）、`#if CHAINLED_BLE`で
+  `BleTransport`/TCP経路を切替。TitleScreenのボタン文言も
+  `#if CHAINLED_BLE`で"(LAN)"/"(BLE)"を切替（新規StrId4件追加、
+  EN/JA/ZH全対応）
+- ReceiveScreen（BLE時）は2段階状態機械: `scanner`が非nullの間は
+  `BleScanner::poll()`で結果リストを監視し、**最初に見つかったホストへ
+  自動join**（デバイス選択UIは v1 スコープ外——既存のTCP経路も
+  127.0.0.1固定・手動IP入力なしという同方針の踏襲）。join成功後は
+  `scanner`を破棄し`transport`/`receiver`を構築、以降は通常の
+  `AnimationReceiver::poll()`ループに合流
+
+### 検証
+- **ヘッドレステスト**: 既存107テストは無変更のまま全green
+  （`ble_transport.cpp`はデスクトップビルドのグロブから除外されるため
+  コンパイル自体されない——BlueZ/sd-bus依存のD-Bus往復はそもそも
+  ユニットテスト不可能な領域であり、Battleship同様この部分にBLE専用の
+  単体テストは無い。上位のChunk/ChunkAck信頼性層は既にLoopbackTransport
+  のフォルト注入で厚くテスト済み、というのが「テストの手が届く境界」の
+  設計）
+- **デバイスビルド**: Phase 4で確立したDocker手順（`debian:trixie`
+  ネイティブarm64コンテナ + BSP sysroot）を再利用、`apt-get install`に
+  `libdbus-1-dev libsystemd-dev`を追加（Battleshipの再現手順をそのまま
+  流用）。`-DCHAINLED_BLE=ON -DUSE_DESKTOP=OFF`でconfigure→buildが
+  639/639ターゲット完走、`ble_transport.cpp`も問題なくコンパイル。
+  最終バイナリを`file`/`readelf -d`で確認: `ELF 64-bit ... ARM aarch64
+  ... dynamically linked`、`NEEDED`に`libsystemd.so.0`を含む
+  ——BLE機能が実際にリンクされていることを確認
+- **実機2台での実配布は未実施**（Phase 9で実施予定、PLAN.md記載の通り）。
+  Battleship自身も同じ理由（実機がない）で同じ制約を持ったまま
+  Phase 6を完了させており、今回も同じ前提で進めた。BlueZの実際の
+  ATT_MTU交渉結果・ペアリング無しでの接続可否・`bluetoothd`の
+  D-Busポリシー（`bluetooth`グループ要件、Battleship NOTES.md参照）は
+  実機到着後に要確認
+
 ## 次フェーズへの引き継ぎ
-- Phase 7（BLE配布）から着手。PLAN.md §2.3/Phase 7 参照
+- Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
 - `LlmCompleter` は未実装（Phase 3のGo/No-Go参照）。任意テキストヒント入力UIも
   同様に未実装のまま持ち越し
 - Chain Mono/RGBとの実機疎通・Monoのビット順確認は Phase 9（実機到着後）
-- Send/ReceiveはTCP開発経路のみ（LANホスト探索・手動IP入力は未実装）。
-  Phase 7のBLE実装時に実機での配布経路として置き換え/追加する
-- ReceiveScreenの初回connect()は失敗時に自動リトライしない
-  （送信側が先にlisten()していない状態で受信側がconnect()すると繋がらないまま
-  になる）。2プロセス検証では起動順序で回避したが、UI側での再試行/
-  再接続ボタンは将来の改善余地として残っている
+- BLEのデバイス選択UI（現状は最初に見つかったホストへ自動join）・
+  ニックネーム設定・ペアリング/ボンディングは意図的に v1 スコープ外
+  （Phase 7設計判断）。実機2台での実配布確認・実際のATT_MTU挙動確認は
+  Phase 9
+- ReceiveScreenの初回connect()/join()は失敗時に自動リトライしない
+  （TCP経路: 送信側が先にlisten()していない状態で受信側がconnect()すると
+  繋がらないままになる。BLE経路: `start_join()`失敗時はスキャンを継続する
+  よう対応済みだが、`scan_failed`（アダプタ無し等）からの自動リカバリは無い）
 - 新しいCJK文字（新規StrId追加時など）を`strings_ja.cpp`/`strings_zh.cpp`に
   加えたら`tools/generate_cjk_fonts.py`の再実行を忘れずに（`pip install
   fonttools brotli`が必要、CIでの自動チェックは無し）

@@ -13,8 +13,14 @@
 #include "core/animation_serializer.h"
 #include "fonts.h"
 #include "net/animation_transfer.h"
-#include "net/tcp_transport.h"
+#include "net/transport.h"
 #include "strings.h"
+
+#if CHAINLED_BLE
+#include "net/ble/ble_transport.h"
+#else
+#include "net/tcp_transport.h"
+#endif
 
 #include <cstdio>
 #include <memory>
@@ -23,9 +29,17 @@
 namespace screen {
 namespace {
 
+#if CHAINLED_BLE
+/// Fixed advertised-name suffix -- v1 has no user-configurable device
+/// nickname (see NOTES.md "Phase 7"); every unit currently advertises the
+/// same "CHAINLED-cardputerzero" name, harmless for the auto-join-first-
+/// found-host policy ReceiveScreen uses (see receive_screen.cpp).
+constexpr const char* kBleHostName = "cardputerzero";
+#endif
+
 struct SendUi {
     viewmodel::BaseViewModel* view_model = nullptr;
-    std::unique_ptr<chainled::net::TcpTransport> transport;
+    std::unique_ptr<chainled::net::ITransport> transport;
     std::unique_ptr<chainled::net::AnimationSender> sender;
     lv_obj_t* title_label = nullptr;
     lv_obj_t* status_label = nullptr;
@@ -41,15 +55,27 @@ void refresh(SendUi* ui) {
 
     std::string status;
     if (ui->listen_failed) {
+#if CHAINLED_BLE
+        status = i18n::tr(i18n::StrId::SendBleUnavailable);
+#else
         status = i18n::trf(i18n::StrId::SendFailedToOpenPort, chainled::net::kDevTransferPort);
+#endif
     } else if (!ui->sender) {
+#if CHAINLED_BLE
+        status = i18n::trf(i18n::StrId::SendBleAdvertising, kBleHostName);
+#else
         status = i18n::trf(i18n::StrId::SendWaitingForConnection, chainled::net::kDevTransferPort);
+#endif
     } else if (ui->sender->status() == chainled::net::TransferStatus::InProgress &&
                ui->transport->state() != chainled::net::TransportState::Connected) {
         // Only show "waiting" while nothing has happened yet -- once a
         // transfer reaches Done/Failed, keep showing that result even if
         // the receiver disconnects right after (expected: it's done too).
+#if CHAINLED_BLE
+        status = i18n::trf(i18n::StrId::SendBleAdvertising, kBleHostName);
+#else
         status = i18n::trf(i18n::StrId::SendWaitingForConnection, chainled::net::kDevTransferPort);
+#endif
     } else {
         switch (ui->sender->status()) {
             case chainled::net::TransferStatus::InProgress:
@@ -104,8 +130,16 @@ void SendScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(content, delete_cb, LV_EVENT_DELETE, ui);
 
-    ui->transport = std::make_unique<chainled::net::TcpTransport>();
-    if (ui->transport->listen(chainled::net::kDevTransferPort)) {
+#if CHAINLED_BLE
+    auto ble_transport = std::make_unique<chainled::net::BleTransport>();
+    const bool ready = ble_transport->start_host(kBleHostName);
+    ui->transport = std::move(ble_transport);
+#else
+    auto tcp_transport = std::make_unique<chainled::net::TcpTransport>();
+    const bool ready = tcp_transport->listen(chainled::net::kDevTransferPort);
+    ui->transport = std::move(tcp_transport);
+#endif
+    if (ready) {
         ui->sender = std::make_unique<chainled::net::AnimationSender>(
             *ui->transport, chainled::core::animation_to_text(view_model().animation()));
     } else {

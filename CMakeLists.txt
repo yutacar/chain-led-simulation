@@ -26,6 +26,26 @@ set(APP_DRM_DEVICE "/dev/dri/card0" CACHE STRING "Linux DRM device path used whe
 set(APP_DRM_CONNECTOR_ID "-1" CACHE STRING "DRM connector id used when APP_USE_DRM=ON; -1 auto-selects")
 set(APP_USE_DRM OFF CACHE BOOL "Enable LVGL Linux DRM/KMS backend for embedded Linux builds")
 set(CM0_ALLOW_FETCH_DEPS ON CACHE BOOL "Allow downloading missing CM0 BSP/dependencies during cross builds")
+# CHAINLED_BLE: whether to build the BlueZ D-Bus BleTransport (Phase 7,
+# PLAN.md §2.3 -- the real-device default animation distribution transport).
+# Linux-only: talks to bluetoothd over the system D-Bus via sd-bus
+# (libsystemd), neither of which exists on macOS/Windows, so a macOS desktop
+# dev build gets CHAINLED_BLE=0 and the Send/Receive screens fall back to
+# TcpTransport there. Default: ON for any Linux target (CM0 device builds
+# AND Linux desktop builds), OFF elsewhere -- same policy as Battleship's
+# BATTLESHIP_BLE (see [[battleship-cardputerzero-project]] Phase 6).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CHAINLED_BLE_DEFAULT ON)
+else()
+    set(CHAINLED_BLE_DEFAULT OFF)
+endif()
+set(CHAINLED_BLE ${CHAINLED_BLE_DEFAULT} CACHE BOOL
+    "Build the BlueZ D-Bus BLE transport (Linux targets only)")
+if(CHAINLED_BLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR
+        "CHAINLED_BLE=ON requires a Linux target (BlueZ + libsystemd/sd-bus). "
+        "Reconfigure with -DCHAINLED_BLE=OFF for this platform.")
+endif()
 # Export compile commands
 # Used for IDE IntelliSense
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile_commands.json" FORCE)
@@ -766,7 +786,7 @@ target_link_libraries(${PROJECT_NAME}_view
 # chainled_net sources
 # - Animation distribution protocol (PLAN.md §2.3): frame codec, ITransport
 #   + LoopbackTransport (fault injection) + TcpTransport (POSIX sockets,
-#   the desktop/LAN dev path -- BLE is the real-device default, Phase 7),
+#   the desktop/LAN dev path) + BleTransport (real-device default, Phase 7),
 #   and AnimationSender/AnimationReceiver built on top. Depends on
 #   chainled_animation_core for Animation (de)serialization.
 # - Namespace: chainled::net
@@ -774,6 +794,10 @@ target_link_libraries(${PROJECT_NAME}_view
 file(GLOB_RECURSE CHAINLED_NET_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/net/*.cpp"
 )
+# src/net/ble/ is Linux-only (BlueZ over sd-bus, Phase 7): keep it out of the
+# glob and add it back explicitly below, so a macOS desktop build never even
+# attempts to compile it (same pattern as Battleship's BATTLESHIP_BLE).
+list(FILTER CHAINLED_NET_SOURCES EXCLUDE REGEX "/src/net/ble/")
 
 add_library(chainled_net STATIC
     ${CHAINLED_NET_SOURCES}
@@ -785,6 +809,40 @@ target_link_libraries(chainled_net
 )
 
 target_compile_features(chainled_net PUBLIC cxx_std_17)
+
+# The CHAINLED_BLE macro is PUBLIC so UI layers (view) can gate BLE code
+# paths with plain `#if CHAINLED_BLE`.
+target_compile_definitions(chainled_net
+    PUBLIC
+        CHAINLED_BLE=$<BOOL:${CHAINLED_BLE}>
+)
+
+if(CHAINLED_BLE)
+    target_sources(chainled_net PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ble/ble_transport.cpp"
+    )
+    # sd-bus lives in libsystemd. Desktop Linux: pkg-config is the normal
+    # route. CM0 cross/native builds: search the BSP sysroot with the same
+    # cm0_find_* helpers the other device dependencies use (pkg-config would
+    # resolve against host paths there).
+    if(USE_DESKTOP)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
+        target_link_libraries(chainled_net PRIVATE PkgConfig::SYSTEMD)
+    else()
+        cm0_find_header(SYSTEMD_INCLUDE_DIR systemd/sd-bus.h ${CM0_INCLUDE_HINTS})
+        cm0_find_library(SYSTEMD_LIBRARY systemd libsystemd.so libsystemd.so.0)
+        if(NOT SYSTEMD_INCLUDE_DIR OR NOT SYSTEMD_LIBRARY)
+            message(FATAL_ERROR
+                "CHAINLED_BLE=ON but systemd/sd-bus.h or libsystemd was not found in the "
+                "sysroot (${CM0_SYSROOT}). Install libsystemd-dev there, or configure with "
+                "-DCHAINLED_BLE=OFF.")
+        endif()
+        cm0_add_imported_library(CM0::Systemd "${SYSTEMD_LIBRARY}" "${SYSTEMD_INCLUDE_DIR}")
+        target_link_libraries(chainled_net PRIVATE CM0::Systemd)
+    endif()
+    message(STATUS "CHAINLED_BLE: BlueZ/sd-bus BleTransport enabled")
+endif()
 
 # Send/Receive screens (view layer) drive chainled_net directly.
 target_link_libraries(${PROJECT_NAME}_view
