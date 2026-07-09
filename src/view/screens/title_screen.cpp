@@ -66,52 +66,61 @@ TitleScreen::TitleScreen(viewmodel::BaseViewModel& view_model, app::AssetManager
 void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
+    // Logo + subtitle + button stack are nested inside one flex-column
+    // "group" so the whole block centers as a unit (both axes) regardless
+    // of how many buttons are showing -- a fixed screen-relative offset
+    // for each piece was fragile (see NOTES.md: it overlapped twice before
+    // this nested-flex rewrite). Only the bottom guide stays outside the
+    // group, pinned to the screen edge.
+    auto* group = lv_obj_create(content);
+    lv_obj_remove_style_all(group);
+    lv_obj_set_size(group, 200, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(group, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(group, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(group, 4, 0);
+    lv_obj_clear_flag(group, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align(group, LV_ALIGN_CENTER, 0, -6);
+
     // "CHAINLED" is the product's brand wordmark, kept in English in every
     // UI language (same treatment as Battleship's "BATTLESHIP" title logo --
     // see tools/generate_title_logo.py). Rendered as a pre-generated 3D
     // ASCII-art PNG rather than an lv_label: LVGL's built-in fonts have no
     // bevel/shading support, so the isometric-block look is produced
     // offline with Pillow.
-    auto* title = lv_image_create(content);
+    auto* title = lv_image_create(group);
     auto logo_path = assets().resolve("images/title_logo.png");
     if (!logo_path.empty()) {
         // lv_image_set_src() lv_strdup()s file-path sources internally, so
         // this local string does not need to outlive the call.
         std::string logo_path_str = "A:" + logo_path.string();
         lv_image_set_src(title, logo_path_str.c_str());
-        lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
     } else {
         // Fallback in case the PNG asset failed to resolve -- keep the
         // title readable instead of showing a blank/broken image.
         lv_obj_delete(title);
-        title = lv_label_create(content);
+        title = lv_label_create(group);
         lv_label_set_text(title, "CHAINLED");
         lv_obj_set_style_text_font(title, i18n::font_for_size(18), 0);
-        lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
         reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     }
 
     // "Simulation" completes the "CHAINLED Simulation" brand lockup below
     // the logo -- fixed English literal, same non-translated treatment as
     // the logo itself (not part of the i18n catalog).
-    auto* subtitle = lv_label_create(content);
+    auto* subtitle = lv_label_create(group);
     lv_label_set_text(subtitle, "Simulation");
     lv_obj_set_style_text_font(subtitle, i18n::font_for_size(12), 0);
     lv_obj_set_style_text_opa(subtitle, LV_OPA_70, 0);
-    lv_obj_align_to(subtitle, title, LV_ALIGN_OUT_BOTTOM_MID, 0, 1);
     reactive::bind_theme(subtitle, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
 
-    auto* menu = lv_obj_create(content);
+    auto* menu = lv_obj_create(group);
     lv_obj_remove_style_all(menu);
     lv_obj_set_size(menu, 170, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(menu, 3, 0);
+    lv_obj_set_style_pad_top(menu, 4, 0);
     lv_obj_clear_flag(menu, LV_OBJ_FLAG_SCROLLABLE);
-    // Chained off the subtitle (rather than a fixed offset from screen
-    // center) so the menu never overlaps it regardless of exact glyph
-    // metrics -- see NOTES.md, this overlapped in an earlier iteration.
-    lv_obj_align_to(menu, subtitle, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
 
     auto* new_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleNewAnimation));
     reactive::bind_theme(new_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);

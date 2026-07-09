@@ -37,12 +37,14 @@ with Pillow and displaying via lv_image (LV_USE_LIBPNG=1, LV_USE_FS_STDIO
 drive letter 'A' -- both already enabled in lv_conf_desktop.h /
 lv_conf_cm0.h) is the simplest correct approach.
 
-Color choice: the face color (99, 226, 183) = 0x63e2b7 matches
-view::color::dark::kPrimary (src/view/ui_const.h) exactly -- ChainLED
-inherited the same template default accent color Battleship used, so no
-new palette was invented; the logo reads as an intentional accent on the
-dark theme, with a heavy near-black outline keeping it legible on the
-light theme's 0xffffff body too.
+Color choice: each lit cell is colored red, green, or blue, cycling by
+absolute column position across the whole "CHAINLED" wordmark (left to
+right: R,G,B,R,G,B,...) rather than a single solid accent color --
+deliberately evocative of the physical Chain RGB LED matrix this app
+drives (each "diode" its own primary color), not just a themed logo.
+A single unified dark outline (not per-color) keeps the multi-hue glyph
+reading as one cohesive graphic instead of looking like scattered
+confetti.
 
 Requirements (installed on demand into a local venv, not vendored):
     pip install pillow
@@ -85,13 +87,36 @@ FONT_5X7 = {
 # "Simulation" subtitle plus that button stack.
 MAX_W, MAX_H = 300, 30
 
-# Matches view::color::dark::kPrimary (0x63e2b7) -- see module docstring.
-PALETTE = dict(
-    face=(99, 226, 183, 255),
-    top=(200, 250, 235, 255),
-    side=(20, 80, 65, 255),
-    outline=(6, 20, 16, 255),
-)
+# RGB "diode" palette -- see module docstring for why per-cell color instead
+# of a single accent. Bright, slightly desaturated primaries read clearly as
+# red/green/blue LEDs rather than a garish rainbow.
+LED_COLORS: list[tuple[int, int, int]] = [
+    (255, 76, 76),   # red
+    (86, 214, 110),  # green
+    (92, 156, 255),  # blue
+]
+OUTLINE = (6, 20, 16, 255)
+
+
+def _lighten(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int, int]:
+    r, g, b = (min(255, int(c + (255 - c) * factor)) for c in rgb)
+    return (r, g, b, 255)
+
+
+def _darken(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int, int]:
+    r, g, b = (max(0, int(c * (1 - factor))) for c in rgb)
+    return (r, g, b, 255)
+
+
+def _cell_colors(col_index: int) -> dict[str, tuple[int, int, int, int]]:
+    """face/top/side shades for the cell at this absolute column position
+    (cycling R->G->B left to right across the whole wordmark)."""
+    base = LED_COLORS[col_index % len(LED_COLORS)]
+    return {
+        "face": (*base, 255),
+        "top": _lighten(base, 0.55),
+        "side": _darken(base, 0.6),
+    }
 
 
 def _on(grid: list[str], r: int, c: int) -> bool:
@@ -101,10 +126,6 @@ def _on(grid: list[str], r: int, c: int) -> bool:
 
 
 def render(
-    face: tuple[int, int, int, int],
-    top: tuple[int, int, int, int],
-    side: tuple[int, int, int, int],
-    outline: tuple[int, int, int, int],
     cell: int = 6,
     depth: int = 3,
     letter_gap: int = 1,
@@ -143,7 +164,7 @@ def render(
                     for dy in (-ss, 0, ss):
                         draw.rectangle(
                             [x0 + dx, y0 + dy, x0 + cell_px - 1 + dx, y0 + cell_px - 1 + dy],
-                            fill=outline,
+                            fill=OUTLINE,
                         )
                 if not _on(grid, r - 1, c):
                     for dx in (-ss, 0, ss):
@@ -155,7 +176,7 @@ def render(
                                     (x0 + cell_px - 1 + depth_px + dx, y0 - depth_px + dy),
                                     (x0 + cell_px - 1 + dx, y0 + dy),
                                 ],
-                                fill=outline,
+                                fill=OUTLINE,
                             )
                 if not _on(grid, r, c + 1):
                     for dx in (-ss, 0, ss):
@@ -167,10 +188,10 @@ def render(
                                     (x0 + cell_px - 1 + depth_px + dx, y0 + cell_px - 1 - depth_px + dy),
                                     (x0 + cell_px - 1 + dx, y0 + cell_px - 1 + dy),
                                 ],
-                                fill=outline,
+                                fill=OUTLINE,
                             )
 
-    # Pass 2: front faces (solid fill).
+    # Pass 2: front faces (solid fill, per-cell R/G/B).
     for li, ch in enumerate(TEXT):
         grid = FONT_5X7[ch]
         base_col = letter_col_offsets[li]
@@ -178,6 +199,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1":
                     x0, y0 = cell_origin(base_col, r, c)
+                    face = _cell_colors(base_col + c)["face"]
                     draw.rectangle([x0, y0, x0 + cell_px - 1, y0 + cell_px - 1], fill=face)
 
     # Pass 3: top bevels, only on the silhouette's top edge (no 'on'
@@ -189,6 +211,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1" and not _on(grid, r - 1, c):
                     x0, y0 = cell_origin(base_col, r, c)
+                    top = _cell_colors(base_col + c)["top"]
                     draw.polygon(
                         [
                             (x0, y0),
@@ -207,6 +230,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1" and not _on(grid, r, c + 1):
                     x0, y0 = cell_origin(base_col, r, c)
+                    side = _cell_colors(base_col + c)["side"]
                     draw.polygon(
                         [
                             (x0 + cell_px - 1, y0),
@@ -227,7 +251,7 @@ def render(
 
 
 def main() -> None:
-    img = render(**PALETTE)
+    img = render()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUTPUT_PATH)
     print(f"{OUTPUT_PATH} ({img.width}x{img.height})")
