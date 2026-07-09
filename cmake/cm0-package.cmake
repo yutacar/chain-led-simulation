@@ -31,7 +31,7 @@ include(GNUInstallDirs)
 
 set(APP_DISPLAY_NAME "ChainLED" CACHE STRING "Human-readable application name used by launchers and package filename")
 set(APP_DEBIAN_ARCHITECTURE "arm64" CACHE STRING "Debian package architecture")
-set(APP_MAINTAINER "yutacar <yutacar@yutacar.net>" CACHE STRING "Debian package maintainer (must match the publishing GitHub account's verified email -- czdev/prepublish_check.py reject a mismatch as email_mismatch)")
+set(APP_MAINTAINER "yutacar <yutacar@users.noreply.github.com>" CACHE STRING "Debian package maintainer (must match the publishing GitHub account's email -- czdev rejects a mismatch as email_mismatch). Using the GitHub-provided noreply address avoids requiring a public profile email (yutacar's GitHub account has none set -- same choice Battleship's cm0-package.cmake makes).")
 set(APP_PACKAGE_DESCRIPTION "CardputerZero Chain LED animation editor & simulator" CACHE STRING "Debian package summary")
 
 set(APP_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/package")
