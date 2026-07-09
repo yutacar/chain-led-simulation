@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+ * SPDX-FileCopyrightText: 2026 yutacar
  *
  * SPDX-License-Identifier: MIT
  */
@@ -8,6 +8,8 @@
 
 #include "subjects.h"
 #include "base_model.h"
+
+#include "core/animation.h"
 
 #include "lvgl.h"
 
@@ -21,41 +23,66 @@ public:
     BaseViewModel(const BaseViewModel&) = delete;
     BaseViewModel& operator=(const BaseViewModel&) = delete;
 
-    lv_subject_t* title_subject();
-    lv_subject_t* greeting_subject();
+    // ---- Subjects (reactive UI bindings) ----
     lv_subject_t* dark_mode_subject();
     lv_subject_t* current_page_subject();
-    lv_subject_t* counter_subject();
-    lv_subject_t* bold_text_subject();
-    lv_subject_t* info_visible_subject();
     lv_subject_t* quit_requested_subject();
+    /// Bumped (incremented) on every animation/editor state change. Screens
+    /// register one observer on this and redraw everything on notification,
+    /// the same "dirty counter" pattern used throughout this codebase rather
+    /// than a subject per field.
+    lv_subject_t* animation_dirty_subject();
 
+    // ---- App-level ----
     bool is_dark_mode() const;
-    void set_dark_mode(bool enabled);
-    void toggle_dark_mode();
-
     model::AppPage current_page() const;
-    void show_apple_page();
-    void show_butter_page();
-    void toggle_page();
-    void increment_counter();
-    void decrement_counter();
-    void toggle_bold_text();
-    void toggle_info();
+    void show_page(model::AppPage page);
     void request_quit();
 
+    // ---- Animation data access ----
+    const chainled::core::Animation& animation() const { return animation_; }
+    int current_frame_index() const { return current_frame_index_; }
+    int cursor_x() const { return cursor_x_; }
+    int cursor_y() const { return cursor_y_; }
+    chainled::core::Rgb565 current_draw_color() const;
+    bool has_saved_animation() const;
+
+    // ---- File I/O (see app/paths.h for the fixed save location) ----
+    void new_animation();
+    bool load_animation();
+    bool save_animation() const;
+
+    // ---- Editing ops (Editor screen) ----
+    void move_cursor(int dx, int dy);
+    void toggle_pixel_at_cursor();
+    void cycle_draw_color();
+    void flip_current_frame_horizontal();
+    void flip_current_frame_vertical();
+    void adjust_current_frame_duration(int delta_ms);
+
+    // ---- Frame/timeline ops ----
+    void select_frame(int index);
+    void next_frame();
+    void prev_frame();
+    void add_frame();
+    void duplicate_current_frame();
+    void remove_current_frame();
+
 private:
-    void publish_all();
+    void bump_dirty();
+    void clamp_current_frame_index();
 
     model::BaseModel model_;
-    reactive::StringSubject<32> title_subject_;
-    reactive::StringSubject<32> greeting_subject_;
+    chainled::core::Animation animation_;
+    int cursor_x_ = 0;
+    int cursor_y_ = 0;
+    int current_frame_index_ = 0;
+    int draw_color_index_ = 0;
+
     reactive::BoolSubject dark_mode_subject_;
     reactive::IntSubject current_page_subject_;
-    reactive::IntSubject counter_subject_;
-    reactive::BoolSubject bold_text_subject_;
-    reactive::BoolSubject info_visible_subject_;
     reactive::BoolSubject quit_requested_subject_;
+    reactive::IntSubject animation_dirty_subject_;
 };
 
 } // namespace viewmodel

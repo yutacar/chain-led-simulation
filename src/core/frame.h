@@ -25,6 +25,11 @@ using Rgb565 = std::uint16_t;
 /// The "off"/background pixel value.
 constexpr Rgb565 kOffColor = 0;
 
+/// Packs 8-bit RGB888 components into RGB565.
+constexpr Rgb565 rgb565(std::uint8_t r, std::uint8_t g, std::uint8_t b) {
+    return static_cast<Rgb565>(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
+}
+
 class Frame {
 public:
     Frame();

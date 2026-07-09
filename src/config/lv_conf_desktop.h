@@ -123,6 +123,10 @@
 #define LV_USE_LIBJPEG_TURBO               0
 #define LV_USE_TJPGD                       1
 
+/* Used by the APP_SCRIPT screenshot capture (app/screenshot.*) to render the
+ * current screen into an in-memory draw buffer before PNG-encoding it. */
+#define LV_USE_SNAPSHOT                    1
+
 #define LV_CACHE_DEF_SIZE                  (8U * 1024U * 1024U)
 #define LV_IMAGE_HEADER_CACHE_DEF_CNT      64
 

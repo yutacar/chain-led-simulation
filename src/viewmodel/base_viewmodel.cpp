@@ -1,10 +1,17 @@
 /*
- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+ * SPDX-FileCopyrightText: 2026 yutacar
  *
  * SPDX-License-Identifier: MIT
  */
 
 #include "base_viewmodel.h"
+
+#include "draw_palette.h"
+
+#include "app/paths.h"
+#include "core/animation_serializer.h"
+
+#include <filesystem>
 
 namespace viewmodel {
 namespace {
@@ -13,27 +20,21 @@ int page_to_int(model::AppPage page) {
     return static_cast<int>(page);
 }
 
+int clampi(int value, int lo, int hi) {
+    if (value < lo) return lo;
+    if (value > hi) return hi;
+    return value;
+}
+
 } // namespace
 
 BaseViewModel::BaseViewModel()
-    : title_subject_(model_.app_title()),
-      greeting_subject_(model_.greeting()),
-      dark_mode_subject_(model_.dark_mode()),
+    : dark_mode_subject_(model_.dark_mode()),
       current_page_subject_(page_to_int(model_.current_page())),
-      counter_subject_(0),
-      bold_text_subject_(false),
-      info_visible_subject_(false),
-      quit_requested_subject_(false) {}
+      quit_requested_subject_(false),
+      animation_dirty_subject_(0) {}
 
 BaseViewModel::~BaseViewModel() = default;
-
-lv_subject_t* BaseViewModel::title_subject() {
-    return title_subject_.native();
-}
-
-lv_subject_t* BaseViewModel::greeting_subject() {
-    return greeting_subject_.native();
-}
 
 lv_subject_t* BaseViewModel::dark_mode_subject() {
     return dark_mode_subject_.native();
@@ -43,81 +44,145 @@ lv_subject_t* BaseViewModel::current_page_subject() {
     return current_page_subject_.native();
 }
 
-lv_subject_t* BaseViewModel::counter_subject() {
-    return counter_subject_.native();
-}
-
-lv_subject_t* BaseViewModel::bold_text_subject() {
-    return bold_text_subject_.native();
-}
-
-lv_subject_t* BaseViewModel::info_visible_subject() {
-    return info_visible_subject_.native();
-}
-
 lv_subject_t* BaseViewModel::quit_requested_subject() {
     return quit_requested_subject_.native();
+}
+
+lv_subject_t* BaseViewModel::animation_dirty_subject() {
+    return animation_dirty_subject_.native();
 }
 
 bool BaseViewModel::is_dark_mode() const {
     return model_.dark_mode();
 }
 
-void BaseViewModel::set_dark_mode(bool enabled) {
-    model_.set_dark_mode(enabled);
-    publish_all();
-}
-
-void BaseViewModel::toggle_dark_mode() {
-    model_.toggle_dark_mode();
-    publish_all();
-}
-
 model::AppPage BaseViewModel::current_page() const {
     return model_.current_page();
 }
 
-void BaseViewModel::show_apple_page() {
-    model_.set_current_page(model::AppPage::Apple);
-    publish_all();
-}
-
-void BaseViewModel::show_butter_page() {
-    model_.set_current_page(model::AppPage::Butter);
-    publish_all();
-}
-
-void BaseViewModel::toggle_page() {
-    model_.toggle_page();
-    publish_all();
-}
-
-void BaseViewModel::increment_counter() {
-    counter_subject_.set(counter_subject_.value() + 1);
-}
-
-void BaseViewModel::decrement_counter() {
-    const auto next = counter_subject_.value() - 1;
-    counter_subject_.set(next < 0 ? 0 : next);
-}
-
-void BaseViewModel::toggle_bold_text() {
-    bold_text_subject_.toggle();
-}
-
-void BaseViewModel::toggle_info() {
-    info_visible_subject_.toggle();
+void BaseViewModel::show_page(model::AppPage page) {
+    model_.set_current_page(page);
+    current_page_subject_.set(page_to_int(page));
 }
 
 void BaseViewModel::request_quit() {
     quit_requested_subject_.set(true);
 }
 
-void BaseViewModel::publish_all() {
-    title_subject_.set(model_.app_title());
-    greeting_subject_.set(model_.greeting());
-    dark_mode_subject_.set(model_.dark_mode());
-    current_page_subject_.set(page_to_int(model_.current_page()));
+chainled::core::Rgb565 BaseViewModel::current_draw_color() const {
+    return kDrawPalette[static_cast<std::size_t>(draw_color_index_)];
+}
+
+bool BaseViewModel::has_saved_animation() const {
+    return std::filesystem::exists(app::default_animation_save_path());
+}
+
+void BaseViewModel::new_animation() {
+    animation_ = chainled::core::Animation();
+    current_frame_index_ = 0;
+    cursor_x_ = 0;
+    cursor_y_ = 0;
+    draw_color_index_ = 0;
+    bump_dirty();
+    show_page(model::AppPage::Editor);
+}
+
+bool BaseViewModel::load_animation() {
+    auto loaded = chainled::core::load_animation_from_file(app::default_animation_save_path());
+    if (!loaded.has_value()) {
+        return false;
+    }
+    animation_ = *loaded;
+    current_frame_index_ = 0;
+    cursor_x_ = 0;
+    cursor_y_ = 0;
+    bump_dirty();
+    show_page(model::AppPage::Editor);
+    return true;
+}
+
+bool BaseViewModel::save_animation() const {
+    std::error_code ec;
+    std::filesystem::create_directories(app::config_dir(), ec);
+    return chainled::core::save_animation_to_file(animation_, app::default_animation_save_path());
+}
+
+void BaseViewModel::move_cursor(int dx, int dy) {
+    cursor_x_ = clampi(cursor_x_ + dx, 0, chainled::core::kFrameSize - 1);
+    cursor_y_ = clampi(cursor_y_ + dy, 0, chainled::core::kFrameSize - 1);
+    bump_dirty();
+}
+
+void BaseViewModel::toggle_pixel_at_cursor() {
+    auto& frame = animation_.frame(current_frame_index_);
+    const auto draw_color = current_draw_color();
+    const auto existing = frame.pixel(cursor_x_, cursor_y_);
+    frame.set_pixel(cursor_x_, cursor_y_, existing == draw_color ? chainled::core::kOffColor : draw_color);
+    bump_dirty();
+}
+
+void BaseViewModel::cycle_draw_color() {
+    draw_color_index_ = static_cast<int>((static_cast<std::size_t>(draw_color_index_) + 1) % kDrawPalette.size());
+    bump_dirty();
+}
+
+void BaseViewModel::flip_current_frame_horizontal() {
+    animation_.frame(current_frame_index_).flip_horizontal();
+    bump_dirty();
+}
+
+void BaseViewModel::flip_current_frame_vertical() {
+    animation_.frame(current_frame_index_).flip_vertical();
+    bump_dirty();
+}
+
+void BaseViewModel::adjust_current_frame_duration(int delta_ms) {
+    animation_.set_frame_duration_ms(current_frame_index_,
+                                      animation_.frame_duration_ms(current_frame_index_) + delta_ms);
+    bump_dirty();
+}
+
+void BaseViewModel::select_frame(int index) {
+    if (animation_.valid_index(index)) {
+        current_frame_index_ = index;
+    }
+    bump_dirty();
+}
+
+void BaseViewModel::next_frame() {
+    select_frame(current_frame_index_ + 1);
+}
+
+void BaseViewModel::prev_frame() {
+    select_frame(current_frame_index_ - 1);
+}
+
+void BaseViewModel::add_frame() {
+    if (animation_.add_blank_frame()) {
+        current_frame_index_ = animation_.frame_count() - 1;
+    }
+    bump_dirty();
+}
+
+void BaseViewModel::duplicate_current_frame() {
+    if (animation_.duplicate_frame(current_frame_index_)) {
+        current_frame_index_ += 1;
+    }
+    bump_dirty();
+}
+
+void BaseViewModel::remove_current_frame() {
+    animation_.remove_frame(current_frame_index_);
+    clamp_current_frame_index();
+    bump_dirty();
+}
+
+void BaseViewModel::bump_dirty() {
+    animation_dirty_subject_.set(animation_dirty_subject_.value() + 1);
+}
+
+void BaseViewModel::clamp_current_frame_index() {
+    current_frame_index_ = clampi(current_frame_index_, 0, animation_.frame_count() - 1);
 }
 
 } // namespace viewmodel

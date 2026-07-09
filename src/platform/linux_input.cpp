@@ -1,11 +1,13 @@
+/*
+ * SPDX-FileCopyrightText: 2026 yutacar
+ *
+ * SPDX-License-Identifier: MIT
+ */
 #include "linux_input.h"
-
-#include <array>
-#include <cstdint>
-#include <cstring>
 
 #if !USE_DESKTOP
 #include <cerrno>
+#include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
 #include <linux/input.h>
@@ -21,61 +23,6 @@
 namespace platform {
 namespace {
 
-std::array<lv_obj_t*, kNavKeyCount> nav_buttons{};
-uint32_t last_key = 0;
-bool last_key_pressed = false;
-
-size_t nav_key_to_index(uint32_t key) {
-    switch (key) {
-        case '4':
-        case LV_KEY_ESC:
-            return 0;
-        case '5':
-            return 1;
-        case '6':
-            return 2;
-        case '7':
-            return 3;
-        case '8':
-            return 4;
-        default:
-            return kNavKeyCount;
-    }
-}
-
-void dispatch_nav_key(uint32_t key) {
-    const auto index = nav_key_to_index(key);
-    if (index >= nav_buttons.size()) {
-        return;
-    }
-
-    auto* button = nav_buttons[index];
-    if (!button || !lv_obj_is_valid(button) || !lv_obj_has_flag(button, LV_OBJ_FLAG_CLICKABLE)) {
-        return;
-    }
-
-    lv_obj_send_event(button, LV_EVENT_CLICKED, nullptr);
-}
-
-void key_event_cb(lv_event_t* event) {
-    LV_UNUSED(event);
-
-    auto* indev = lv_indev_active();
-    if (!indev) {
-        return;
-    }
-
-    const auto key = lv_indev_get_key(indev);
-    const bool pressed = lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED;
-
-    if (pressed && (!last_key_pressed || last_key != key)) {
-        dispatch_nav_key(key);
-    }
-
-    last_key = key;
-    last_key_pressed = pressed;
-}
-
 #if !USE_DESKTOP
 struct EvdevKeypad {
     int fd{-1};
@@ -83,20 +30,32 @@ struct EvdevKeypad {
     uint32_t key{0};
 };
 
+// Maps the CardputerZero's 46-key matrix to LVGL group-navigation keys.
+// Arrow keys move focus/cursor, Enter activates/toggles, Esc/Home drive the
+// short-back / quit convention centrally (see ScreenManager::on_indev_key).
+// Screen-specific single-letter shortcuts (Editor's C/F/V/N/D/P/S, etc.) are
+// plain ASCII; the desktop SDL keyboard driver already produces those
+// natively, and device support for them is added when the corresponding
+// evdev key codes are needed on real hardware.
 uint32_t map_evdev_key(uint16_t code) {
     switch (code) {
         case KEY_ESC:
             return LV_KEY_ESC;
-        case KEY_4:
-            return '4';
-        case KEY_5:
-            return '5';
-        case KEY_6:
-            return '6';
-        case KEY_7:
-            return '7';
-        case KEY_8:
-            return '8';
+        case KEY_HOME:
+            return LV_KEY_HOME;
+        case KEY_UP:
+            return LV_KEY_UP;
+        case KEY_DOWN:
+            return LV_KEY_DOWN;
+        case KEY_LEFT:
+            return LV_KEY_LEFT;
+        case KEY_RIGHT:
+            return LV_KEY_RIGHT;
+        case KEY_ENTER:
+        case KEY_KPENTER:
+            return LV_KEY_ENTER;
+        case KEY_BACKSPACE:
+            return LV_KEY_BACKSPACE;
         default:
             return 0;
     }
@@ -113,8 +72,8 @@ bool has_nav_keys(int fd) {
         return (key_bits[code / bits_per_word] & (1UL << (code % bits_per_word))) != 0;
     };
 
-    return has_key(KEY_ESC) || has_key(KEY_4) || has_key(KEY_5) || has_key(KEY_6) ||
-           has_key(KEY_7) || has_key(KEY_8);
+    return has_key(KEY_ESC) || has_key(KEY_UP) || has_key(KEY_DOWN) || has_key(KEY_LEFT) ||
+           has_key(KEY_RIGHT) || has_key(KEY_ENTER);
 }
 
 void evdev_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
@@ -173,7 +132,7 @@ lv_indev_t* create_keypad_from_fd(int fd) {
     lv_indev_set_read_cb(indev, evdev_read_cb);
     lv_indev_set_driver_data(indev, keypad);
     lv_indev_add_event_cb(indev, evdev_delete_cb, LV_EVENT_DELETE, nullptr);
-    attach_key_router(indev);
+    lv_indev_set_group(indev, lv_group_get_default());
     return indev;
 }
 
@@ -197,12 +156,15 @@ lv_indev_t* try_create_keypad(const char* path) {
     return create_keypad_from_fd(fd);
 }
 
-void discover_keypads(lv_display_t* display) {
+void discover_keypads(lv_display_t* display, const KeypadIndevCallback& on_indev_created) {
     const char* configured_device = APP_KEY_INPUT_DEVICE;
     if (configured_device[0] != '\0') {
         auto* indev = try_create_keypad(configured_device);
         if (indev) {
             lv_indev_set_display(indev, display);
+            if (on_indev_created) {
+                on_indev_created(indev);
+            }
         }
         return;
     }
@@ -223,6 +185,9 @@ void discover_keypads(lv_display_t* display) {
         auto* indev = try_create_keypad(path.c_str());
         if (indev) {
             lv_indev_set_display(indev, display);
+            if (on_indev_created) {
+                on_indev_created(indev);
+            }
         }
     }
 
@@ -232,38 +197,13 @@ void discover_keypads(lv_display_t* display) {
 
 } // namespace
 
-void init_key_input(lv_display_t* display) {
+void init_key_input(lv_display_t* display, const KeypadIndevCallback& on_indev_created) {
 #if !USE_DESKTOP
-    discover_keypads(display);
+    discover_keypads(display, on_indev_created);
 #else
     LV_UNUSED(display);
+    LV_UNUSED(on_indev_created);
 #endif
-}
-
-void attach_key_router(lv_indev_t* indev) {
-    if (!indev || lv_indev_get_type(indev) != LV_INDEV_TYPE_KEYPAD) {
-        return;
-    }
-
-    lv_indev_add_event_cb(indev, key_event_cb, LV_EVENT_KEY, nullptr);
-}
-
-void register_nav_button(size_t index, lv_obj_t* button) {
-    if (index >= nav_buttons.size()) {
-        return;
-    }
-
-    nav_buttons[index] = button;
-}
-
-void unregister_nav_button(size_t index, lv_obj_t* button) {
-    if (index >= nav_buttons.size()) {
-        return;
-    }
-
-    if (!button || nav_buttons[index] == button) {
-        nav_buttons[index] = nullptr;
-    }
 }
 
 } // namespace platform

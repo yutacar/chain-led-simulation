@@ -627,6 +627,19 @@ target_include_directories(chainled_animation_core
 
 target_compile_features(chainled_animation_core PUBLIC cxx_std_17)
 
+# view/ (screens+widgets) and viewmodel/ both reference chainled::core types
+# directly (Frame/Animation), hence the PUBLIC link -- see src/view/widgets/
+# pixel_grid.* and src/viewmodel/base_viewmodel.*.
+target_link_libraries(${PROJECT_NAME}_view
+    PUBLIC
+        chainled_animation_core
+)
+
+target_link_libraries(${PROJECT_NAME}_viewmodel
+    PUBLIC
+        chainled_animation_core
+)
+
 # Package deb
 include(cmake/cm0-package.cmake)
 

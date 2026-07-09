@@ -94,6 +94,14 @@ TEST(Frame, ShiftOffTheEdgeDropsPixels) {
     }
 }
 
+TEST(Frame, Rgb565PacksComponents) {
+    EXPECT_EQ(rgb565(0xFF, 0xFF, 0xFF), 0xFFFF);
+    EXPECT_EQ(rgb565(0x00, 0x00, 0x00), 0x0000);
+    EXPECT_EQ(rgb565(0xFF, 0x00, 0x00), 0xF800);
+    EXPECT_EQ(rgb565(0x00, 0xFF, 0x00), 0x07E0);
+    EXPECT_EQ(rgb565(0x00, 0x00, 0xFF), 0x001F);
+}
+
 TEST(Frame, EqualityComparesPixelContent) {
     Frame a;
     Frame b;

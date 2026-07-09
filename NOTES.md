@@ -59,7 +59,52 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   拒否・ファイル未存在時のnullopt等）を含む
 - フルアプリ（`chainled` 実行体）のビルドも改名後に再確認、問題なし
 
+## Phase 2: エディタ+シミュレータUI + APP_SCRIPT/screenshot機構（完了 2026-07-09）
+
+- テンプレートのデモ画面・chrome（Apple/Butterスクリーン、TitleBar/NavBar、
+  IconButton）を全削除し、Battleship と同じ「フルスクリーン BaseScreen +
+  共有 lv_group + Esc短押し=戻る/長押し(Home可)=終了」方式に置き換え
+  （`base_screen.h/.cpp`, `screen_manager.h/.cpp`, `platform/linux_input.*` を
+  Battleship の実装から移植・ChainLED 用に整理。ナビボタン方式は撤去）
+- `BaseModel`/`BaseViewModel` を作り直し、`AppPage{Title, Editor, Simulator}` の
+  3画面構成に。`BaseViewModel` が `chainled::core::Animation` を直接保持し、
+  カーソル位置・現在フレーム・描画色（固定プリセット6色、`draw_palette.h`）を
+  管理。編集操作はすべて `animation_dirty_subject_`（bump カウンタ）を発火し、
+  各画面は1つの観測者で全体再描画する方式（Battleship の `board_dirty_subject`
+  と同一パターン）
+- **Title画面**: New Animation / Load Animation（保存済みアニメーションがある
+  場合のみ表示）/ Quit。矢印キーでボタン間フォーカス移動
+- **Editor画面**: 8×8ピクセルグリッド（12pxセル、矢印+Enterで色トグル）、
+  最大10コマのタイムライン（2pxセルのミニプレビュー、現在コマを枠でハイライト）、
+  C=色循環、F/V=水平/垂直反転、N/D/Backspace=追加/複製/削除、+/-=表示時間調整、
+  S=保存、P=シミュレータへ
+- **Simulator画面**: `view::widgets::PixelGrid`（`SimulatorChainOutput` 相当、
+  Editor と共有部品）でオンスクリーン再生ループ（各フレーム自身の duration_ms で
+  タイマー再設定）。M でRGB/Mono表示切替（Mono時は非ゼロ画素を白に閾値変換 —
+  実機 Chain Mono での見え方を模擬）
+- 保存先は `~/.config/chainled/animation.txt`（`app/paths.h`。Phase 6の
+  設定ファイル本実装より前の最小実装として単一ファイルのみ扱う）
+- **見つけて直したバグ**: タイムラインのミニサムネイル（セル2px）で毎セル1pxの
+  境界線を引いていたため、境界色が塗り色を圧倒しサムネイル全体が白っぽく
+  見える不具合。`refresh_pixel_grid()` に `draw_cell_borders` フラグを追加し
+  サムネイルでは境界線を省略して解消（スクリーンショット目視で発見）
+- APP_SCRIPT / APP_SCREENSHOT_SEQUENCE / F12 スクリーンショット機構を
+  Battleship の実装から移植（`app/screenshot.*`, `app.cpp`）。環境変数名は
+  `CHAINLED_WINDOW_ZOOM`（Battleshipの`BATTLESHIP_WINDOW_ZOOM`相当）
+- `LV_USE_SNAPSHOT` を `lv_conf_desktop.h` で有効化（PNG::PNGは`lvgl`ターゲット
+  経由で既にリンク済みのため追加のCMake変更は不要だった）
+- **13枚のスクリーンショットで目視確認**（`docs/screenshots/`、リポジトリに
+  コミット — Battleshipの前例に倣い開発記録として保持）: Title→New→ピクセル
+  描画→色変更→フレーム追加→フレーム間タイムライン→Simulator(RGB/Mono)→
+  Editorに戻る→保存→Titleに戻ってLoad Animationボタン出現、を一通り確認。
+  Home キーでの終了（exit code 0、クラッシュなし）も確認
+- 全38テスト green（Phase 1のAnimationCoreテストに変更なし。Phase 2はUI層のみで
+  ヘッドレステストの対象外 — 挙動確認はAPP_SCRIPTスクリーンショットで代替）
+
 ## 次フェーズへの引き継ぎ
-- Phase 2（エディタ+シミュレータUI + APP_SCRIPT/screenshot機構）から着手
-- `AnimationCore` はまだどのUI/viewmodelにもリンクされていない（Phase 1はコア単体で
-  完結）。Phase 2 で `chainled_viewmodel` 等から `chainled_animation_core` をリンクする
+- Phase 3（残りコマ自動生成: ProceduralCompleter → Go/No-Go実測 → 任意でLlmCompleter）
+  から着手。PLAN.md §2.4 参照
+- Editorの「Generate」操作・任意テキストヒント入力UIはPhase 3で追加する
+  （Phase 2のEditor画面には未実装）
+- 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
+  Phase 2スコープ外。PLAN.md記載の設計判断）
