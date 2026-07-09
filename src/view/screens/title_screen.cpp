@@ -34,13 +34,27 @@ void quit_cb(lv_event_t* event) {
     }
 }
 
+void send_cb(lv_event_t* event) {
+    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
+    if (view_model) {
+        view_model->show_page(model::AppPage::Send);
+    }
+}
+
+void receive_cb(lv_event_t* event) {
+    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
+    if (view_model) {
+        view_model->show_page(model::AppPage::Receive);
+    }
+}
+
 lv_obj_t* make_menu_button(lv_obj_t* parent, app::AssetManager& assets, const char* text) {
     auto* button = lv_button_create(parent);
-    lv_obj_set_size(button, 160, 24);
+    lv_obj_set_size(button, 160, 20);
     auto* label = lv_label_create(button);
     lv_label_set_text(label, text);
-    auto* font = assets.load_font("inter-regular.ttf", 14);
-    lv_obj_set_style_text_font(label, font ? font : &lv_font_montserrat_14, 0);
+    auto* font = assets.load_font("inter-regular.ttf", 12);
+    lv_obj_set_style_text_font(label, font ? font : &lv_font_montserrat_12, 0);
     lv_obj_center(label);
     return button;
 }
@@ -67,9 +81,9 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_set_size(menu, 160, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(menu, 6, 0);
+    lv_obj_set_style_pad_row(menu, 3, 0);
     lv_obj_clear_flag(menu, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(menu, LV_ALIGN_CENTER, 0, 10);
+    lv_obj_align(menu, LV_ALIGN_CENTER, 0, 6);
 
     auto* new_button = make_menu_button(menu, assets(), "New Animation");
     reactive::bind_theme(new_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
@@ -86,6 +100,18 @@ void TitleScreen::build_content(lv_obj_t* content) {
         BaseScreen::enable_arrow_focus_navigation(load_button);
         lv_group_add_obj(BaseScreen::shared_group(), load_button);
     }
+
+    auto* send_button = make_menu_button(menu, assets(), "Send Animation (LAN)");
+    reactive::bind_theme(send_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
+    lv_obj_add_event_cb(send_button, send_cb, LV_EVENT_CLICKED, &view_model());
+    BaseScreen::enable_arrow_focus_navigation(send_button);
+    lv_group_add_obj(BaseScreen::shared_group(), send_button);
+
+    auto* receive_button = make_menu_button(menu, assets(), "Receive Animation (LAN)");
+    reactive::bind_theme(receive_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
+    lv_obj_add_event_cb(receive_button, receive_cb, LV_EVENT_CLICKED, &view_model());
+    BaseScreen::enable_arrow_focus_navigation(receive_button);
+    lv_group_add_obj(BaseScreen::shared_group(), receive_button);
 
     auto* quit_button = make_menu_button(menu, assets(), "Quit");
     reactive::bind_theme(quit_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);

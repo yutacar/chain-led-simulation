@@ -710,6 +710,36 @@ target_link_libraries(${PROJECT_NAME}_view
         chainled_chain
 )
 
+# ====================================================
+# chainled_net sources
+# - Animation distribution protocol (PLAN.md §2.3): frame codec, ITransport
+#   + LoopbackTransport (fault injection) + TcpTransport (POSIX sockets,
+#   the desktop/LAN dev path -- BLE is the real-device default, Phase 7),
+#   and AnimationSender/AnimationReceiver built on top. Depends on
+#   chainled_animation_core for Animation (de)serialization.
+# - Namespace: chainled::net
+# ====================================================
+file(GLOB_RECURSE CHAINLED_NET_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/*.cpp"
+)
+
+add_library(chainled_net STATIC
+    ${CHAINLED_NET_SOURCES}
+)
+
+target_link_libraries(chainled_net
+    PUBLIC
+        chainled_animation_core
+)
+
+target_compile_features(chainled_net PUBLIC cxx_std_17)
+
+# Send/Receive screens (view layer) drive chainled_net directly.
+target_link_libraries(${PROJECT_NAME}_view
+    PUBLIC
+        chainled_net
+)
+
 # Package deb
 include(cmake/cm0-package.cmake)
 

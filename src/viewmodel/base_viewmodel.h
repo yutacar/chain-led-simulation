@@ -74,6 +74,12 @@ public:
     // up here yet (NOTES.md "Phase 3: Go/No-Go").
     void generate_remaining_frames();
 
+    // ---- Distribution (PLAN.md §2.3): the Receive screen calls this once
+    // AnimationReceiver reports Done, replacing whatever animation was
+    // being edited. Does not touch the save file -- the user still saves
+    // explicitly from the Editor if they want to keep it.
+    void receive_animation(const chainled::core::Animation& animation);
+
 private:
     void bump_dirty();
     void clamp_current_frame_index();

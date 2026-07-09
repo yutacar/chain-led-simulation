@@ -185,6 +185,14 @@ void BaseViewModel::generate_remaining_frames() {
     bump_dirty();
 }
 
+void BaseViewModel::receive_animation(const chainled::core::Animation& animation) {
+    animation_ = animation;
+    current_frame_index_ = 0;
+    cursor_x_ = 0;
+    cursor_y_ = 0;
+    bump_dirty();
+}
+
 void BaseViewModel::bump_dirty() {
     animation_dirty_subject_.set(animation_dirty_subject_.value() + 1);
 }

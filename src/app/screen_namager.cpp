@@ -7,6 +7,8 @@
 #include "screen_manager.h"
 
 #include "editor_screen.h"
+#include "receive_screen.h"
+#include "send_screen.h"
 #include "simulator_screen.h"
 #include "title_screen.h"
 
@@ -109,6 +111,12 @@ void ScreenManager::show_screen_for_page(model::AppPage page) {
         case model::AppPage::Simulator:
             load_screen(std::make_unique<screen::SimulatorScreen>(view_model_, assets_));
             break;
+        case model::AppPage::Send:
+            load_screen(std::make_unique<screen::SendScreen>(view_model_, assets_));
+            break;
+        case model::AppPage::Receive:
+            load_screen(std::make_unique<screen::ReceiveScreen>(view_model_, assets_));
+            break;
         case model::AppPage::Title:
         default:
             load_screen(std::make_unique<screen::TitleScreen>(view_model_, assets_));
@@ -196,6 +204,10 @@ void ScreenManager::handle_short_esc() {
             break;
         case model::AppPage::Simulator:
             view_model_.show_page(model::AppPage::Editor);
+            break;
+        case model::AppPage::Send:
+        case model::AppPage::Receive:
+            view_model_.show_page(model::AppPage::Title);
             break;
     }
 }
