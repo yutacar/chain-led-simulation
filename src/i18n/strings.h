@@ -47,6 +47,7 @@ enum class StrId {
 
     // ---- Send/Receive chooser screen (between Title and Send/Receive) ----
     SendReceiveTitle,
+    SendReceiveBack,
     SendReceiveGuide,
 
     // ---- Editor screen ----

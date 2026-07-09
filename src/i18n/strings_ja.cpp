@@ -20,6 +20,7 @@ const Table kJapaneseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc長押し/Home:終了";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "送受信";
+    t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "戻る";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:選択   Esc:戻る";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "エディタ   フレーム %d/%d";

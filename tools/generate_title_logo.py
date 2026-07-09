@@ -37,14 +37,15 @@ with Pillow and displaying via lv_image (LV_USE_LIBPNG=1, LV_USE_FS_STDIO
 drive letter 'A' -- both already enabled in lv_conf_desktop.h /
 lv_conf_cm0.h) is the simplest correct approach.
 
-Color choice: each lit cell is colored red, green, or blue, cycling by
-absolute column position across the whole "CHAINLED" wordmark (left to
-right: R,G,B,R,G,B,...) rather than a single solid accent color --
-deliberately evocative of the physical Chain RGB LED matrix this app
-drives (each "diode" its own primary color), not just a themed logo.
-A single unified dark outline (not per-color) keeps the multi-hue glyph
-reading as one cohesive graphic instead of looking like scattered
-confetti.
+Color choice: only the "LED" half of the wordmark is colored -- L=red,
+E=green, D=blue, one diode color per letter -- while "CHAIN" stays the
+single original accent color (99, 226, 183) = 0x63e2b7, matching
+view::color::dark::kPrimary (src/view/ui_const.h). This reads as "CHAIN"
++ a literal three-color "LED" rather than the whole wordmark being an
+arbitrary rainbow -- the colored half is exactly the part of the name
+that means LED. A single unified dark outline (not per-color) keeps the
+multi-hue glyph reading as one cohesive graphic instead of looking like
+scattered confetti.
 
 Requirements (installed on demand into a local venv, not vendored):
     pip install pillow
@@ -87,15 +88,21 @@ FONT_5X7 = {
 # "Simulation" subtitle plus that button stack.
 MAX_W, MAX_H = 300, 30
 
-# RGB "diode" palette -- see module docstring for why per-cell color instead
-# of a single accent. Bright, slightly desaturated primaries read clearly as
-# red/green/blue LEDs rather than a garish rainbow.
+# "CHAIN" stays this single original accent color (see module docstring).
+CHAIN_COLOR: tuple[int, int, int] = (99, 226, 183)
+
+# One diode color per letter of "LED" (L, E, D in order) -- see module
+# docstring for why per-letter rather than a whole-wordmark cycle.
 LED_COLORS: list[tuple[int, int, int]] = [
-    (255, 76, 76),   # red
-    (86, 214, 110),  # green
-    (92, 156, 255),  # blue
+    (255, 76, 76),   # L: red
+    (86, 214, 110),  # E: green
+    (92, 156, 255),  # D: blue
 ]
 OUTLINE = (6, 20, 16, 255)
+
+# Index into TEXT where "LED" starts (TEXT = "CHAINLED" -> "LED" is the
+# last 3 letters).
+LED_START_INDEX = len("CHAIN")
 
 
 def _lighten(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int, int]:
@@ -108,10 +115,13 @@ def _darken(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int, in
     return (r, g, b, 255)
 
 
-def _cell_colors(col_index: int) -> dict[str, tuple[int, int, int, int]]:
-    """face/top/side shades for the cell at this absolute column position
-    (cycling R->G->B left to right across the whole wordmark)."""
-    base = LED_COLORS[col_index % len(LED_COLORS)]
+def _cell_colors(letter_index: int) -> dict[str, tuple[int, int, int, int]]:
+    """face/top/side shades for the cell belonging to this letter of TEXT
+    (by letter, not by column -- every cell in "C" shares one color, etc.)."""
+    if letter_index < LED_START_INDEX:
+        base = CHAIN_COLOR
+    else:
+        base = LED_COLORS[(letter_index - LED_START_INDEX) % len(LED_COLORS)]
     return {
         "face": (*base, 255),
         "top": _lighten(base, 0.55),
@@ -199,7 +209,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1":
                     x0, y0 = cell_origin(base_col, r, c)
-                    face = _cell_colors(base_col + c)["face"]
+                    face = _cell_colors(li)["face"]
                     draw.rectangle([x0, y0, x0 + cell_px - 1, y0 + cell_px - 1], fill=face)
 
     # Pass 3: top bevels, only on the silhouette's top edge (no 'on'
@@ -211,7 +221,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1" and not _on(grid, r - 1, c):
                     x0, y0 = cell_origin(base_col, r, c)
-                    top = _cell_colors(base_col + c)["top"]
+                    top = _cell_colors(li)["top"]
                     draw.polygon(
                         [
                             (x0, y0),
@@ -230,7 +240,7 @@ def render(
             for c in range(GLYPH_COLS):
                 if grid[r][c] == "1" and not _on(grid, r, c + 1):
                     x0, y0 = cell_origin(base_col, r, c)
-                    side = _cell_colors(base_col + c)["side"]
+                    side = _cell_colors(li)["side"]
                     draw.polygon(
                         [
                             (x0 + cell_px - 1, y0),

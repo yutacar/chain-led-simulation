@@ -582,6 +582,38 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   無いことを確認。`docs/screenshots/title_{en,ja,zh}.png`を更新
   （4ボタン最大構成、新配色で再撮影）。全107テストgreen
 
+## Title/SendReceive/Editor 微調整3件（完了 2026-07-09、ユーザー指示）
+
+- ユーザー指示: 「LEDの文字だけカラフルにし、CHAINはもともとの単色に
+  してください」「設定画面だけ戻るがあるので送受信にも追加してください」
+  「アニメーション編集画面で選択セルの枠線を黒で表現していますが、
+  グレイにしてください。そうすればどのカラーになってもわかりやすく
+  なるかと思います。」
+- **ロゴ配色の絞り込み**: 前回は単語全体8文字を列位置で赤緑青循環させて
+  いたが、今回「CHAIN」は単色（`0x63e2b7`、元のアクセントカラーに戻す）、
+  「LED」の3文字だけ1文字＝1色（L=赤、E=緑、D=青）に変更。
+  `tools/generate_title_logo.py`の`_cell_colors()`を列位置ベースから
+  **文字インデックスベース**に変更（`letter_index < 5`→CHAIN色、
+  それ以降→LED各色）。"LED"という単語そのものが3色ダイオードを暗示する
+  ため、単語全体を虹色にするより意図が明確になる
+- **SendReceive画面にBackボタン追加**: Settings画面には既にあった
+  「戻る」ボタンがSendReceive画面には無く非対称だったため追加。
+  新規StrId`SendReceiveBack`（EN "Back" / JA "戻る" / ZH "返回"）。
+  Esc操作でも同じくTitleへ戻れるため機能的には冗長だが、Settings画面との
+  一貫性を優先（ボタンでの明示的な操作手段も用意する、という既存UIの
+  慣習に合わせた）
+- **エディタのカーソル枠線色を黒→グレイに変更**: `pixel_grid.cpp`の
+  `refresh_pixel_grid()`が選択セルの枠線色に`palette.text`
+  （ライトテーマでは黒に近い色）を使っていたため、黒に近い色を描画した
+  セルの上ではカーソル位置が視認しにくかった。テーマ非依存の固定グレー
+  `kCursorBorderColor = 0x808080`に変更——ユーザー指摘の通り、どの描画色の
+  上でもカーソルが判別しやすくなる。EditorとSimulatorで共有している
+  `refresh_pixel_grid()`だが、Simulator側は`cursor_x/y`に`-1,-1`を渡すため
+  この変更の影響を受けるのはEditor画面のみ
+- EN/JA/ZH全言語でTitle・SendReceive画面のスクリーンショットを再撮影し
+  `docs/screenshots/{title,send_receive}_{en,ja,zh}.png`を更新。
+  全107テストgreen
+
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に

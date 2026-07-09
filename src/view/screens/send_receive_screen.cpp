@@ -30,6 +30,13 @@ void receive_cb(lv_event_t* event) {
     }
 }
 
+void back_cb(lv_event_t* event) {
+    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
+    if (view_model) {
+        view_model->show_page(model::AppPage::Title);
+    }
+}
+
 lv_obj_t* make_menu_button(lv_obj_t* parent, const char* text) {
     auto* button = lv_button_create(parent);
     lv_obj_set_size(button, 160, 20);
@@ -84,6 +91,12 @@ void SendReceiveScreen::build_content(lv_obj_t* content) {
     lv_obj_add_event_cb(receive_button, receive_cb, LV_EVENT_CLICKED, &view_model());
     BaseScreen::enable_arrow_focus_navigation(receive_button);
     lv_group_add_obj(BaseScreen::shared_group(), receive_button);
+
+    auto* back_button = make_menu_button(menu, i18n::tr(i18n::StrId::SendReceiveBack));
+    reactive::bind_theme(back_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
+    lv_obj_add_event_cb(back_button, back_cb, LV_EVENT_CLICKED, &view_model());
+    BaseScreen::enable_arrow_focus_navigation(back_button);
+    lv_group_add_obj(BaseScreen::shared_group(), back_button);
 
     auto* guide = lv_label_create(content);
     lv_label_set_text(guide, i18n::tr(i18n::StrId::SendReceiveGuide));

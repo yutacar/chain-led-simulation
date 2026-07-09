@@ -20,6 +20,7 @@ const Table kEnglishTable = [] {
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc (hold) / Home: Quit";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "Send / Receive";
+    t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "Back";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter: Select   Esc: Back";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "Editor   Frame %d/%d";

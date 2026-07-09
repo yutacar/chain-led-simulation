@@ -20,6 +20,7 @@ const Table kChineseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   长按Esc/Home:退出";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "收发";
+    t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "返回";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:选择   Esc:返回";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "编辑器   帧 %d/%d";
