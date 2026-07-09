@@ -10,6 +10,7 @@
 
 #include "app/paths.h"
 #include "core/animation_serializer.h"
+#include "generator/procedural_completer.h"
 
 #include <filesystem>
 
@@ -173,6 +174,13 @@ void BaseViewModel::duplicate_current_frame() {
 
 void BaseViewModel::remove_current_frame() {
     animation_.remove_frame(current_frame_index_);
+    clamp_current_frame_index();
+    bump_dirty();
+}
+
+void BaseViewModel::generate_remaining_frames() {
+    chainled::generator::ProceduralCompleter completer;
+    completer.generate(animation_, chainled::core::kMaxFrames, "");
     clamp_current_frame_index();
     bump_dirty();
 }

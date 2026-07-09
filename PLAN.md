@@ -101,6 +101,14 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 
 ### 2.4 AnimationGenerator — 1枚目から残りコマを自動生成（Rev.2 追加）
 
+**Phase 3実施結果（2026-07-09）: `ProceduralCompleter` 実装済み・稼働中
+（Editor画面 `G` キー）。`LlmCompleter` は Go/No-Go実測の結果 No-Go 判定となり
+未実装（判断根拠・実測データは NOTES.md「Phase 3: Go/No-Go 実測」参照。
+決定的な理由は速度ではなく **モデルファイル単体で258MB — 総RAM512MBの半分以上を
+占有する** という構造的な制約）。以下は Rev.2 時点の設計意図として残す
+（`AnimationGenerator` インターフェースは将来 `LlmCompleter` を追加する場合の
+拡張点として現存）。**
+
 エディタで1枚目のコマを描いた状態で「Generate」操作（明示的なキー操作。描画中に
 自動発火はしない — 途中経過での誤発火を避ける判断）を行うと、目標フレーム数
 （2〜10、既定は指示書のUIで選択）まで残りのコマを自動生成する。
@@ -159,7 +167,7 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 | **0. 環境構築** | ✅ 完了。template 取得・git init・private repo 作成・SDL デスクトップビルド確認（fmt include 修正済み） | デスクトップでテンプレートアプリ起動 ✅ |
 | **1. アニメーションコア** | `AnimationCore`（フレーム編集・直列化）実装 + GoogleTest/CTest 導入 | 全テスト green |
 | **2. エディタ+シミュレータ UI** | エディタ画面・タイムライン・`SimulatorChainOutput` 描画 + APP_SCRIPT/screenshot 機構 | 通しでアニメーション作成→オンスクリーン再生確認、全画面スクショ目視OK |
-| **3. 残りコマ自動生成（Rev.2 新設）** | Go/No-Go実測 → `ProceduralCompleter` 実装 → （実用と判断できれば）`LlmCompleter`（llama.cpp+GBNF、パレット数値エンコード）実装、Generate UI（目標コマ数・任意テキストヒント） | `ProceduralCompleter` で1枚目→残りコマ生成のテスト green（必須）。LLM実測結果と可否判断・採否理由を NOTES.md に記録（LLM実装自体はGo判定時のみ必須） |
+| **3. 残りコマ自動生成（Rev.2 新設）** | ✅ 完了。`ProceduralCompleter` 実装 + Go/No-Go実測 → **No-Go判定**（`LlmCompleter` は未実装、詳細は NOTES.md） | `ProceduralCompleter` で1枚目→残りコマ生成のテスト green ✅（10テスト）。Go/No-Go実測・判断理由を NOTES.md に記録 ✅ |
 | **4. Chain プロトコル + デバイス出力** | UART フレームのエンコード/デコード実装（ヘッドレステスト）、`RealChainOutput`（Linux termios）実装、Mono/RGB 判別・変換 | プロトコルのエンコード/デコード単体テスト green、Linux ビルド成功（実機との実通信検証は Phase 9） |
 | **5. 配布プロトコル + TCP開発経路** | チャンク転送プロトコル + 再送層 + `LoopbackTransport`/`TcpTransport` 実装、Send/Receive UI | 2プロセス（Mac）でアニメーション転送が完走、ロス注入テスト green |
 | **6. i18n + 設定永続化** | 文字列カタログ（EN/JA/ZH）、CJK フォントサブセット、設定ファイル永続化 | 3言語で全画面スクショOK、設定が再起動後も保持 |
@@ -193,9 +201,7 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 | Mono(白黒)/RGB(フルカラー)の二種の出力ターゲットでエディタが二重実装になる懸念 | 内部モデルをRGB565に統一し、Mono出力時のみ閾値変換する設計で単一エディタに統一（§2.1/2.2の設計判断） |
 | CJK フォント・.deb サイズ | Battleship の `tools/generate_cjk_fonts.py` 相当の手法（fontTools でグリフサブセット）を流用 |
 | 複数 Chain ユニットのデイジーチェーン対応要求が後から出る可能性 | プロトコルの id フィールドは既に複数台対応済みのため、UIの拡張のみで対応可能な設計にとどめ、v1では実装しない（YAGNI） |
-| ローカルLLM（`LlmCompleter`）がRAM512MB/A53@1GHzで実用速度に達しない（Battleshipの前例あり） | Phase 3冒頭でGo/No-Go実測を先に行う。ワンショット・オフライン生成（対戦中のリアルタイム性が不要）なのでBattleshipの常駐リアルタイム解説より要求は緩いが、それでも不採用ならフォールバックの`ProceduralCompleter`のみで機能は完成させる設計とし、投資済み作業が無駄にならないようにする |
-| LLM出力のパース失敗・出力形式の崩れ | GBNF文法で「厳密に64桁の数字列」に出力を制約し、フリーテキスト生成由来の構文崩れを構造的に防止 |
-| LLMモデルファイル（.gguf）を.debに同梱すると配布サイズが肥大化 | Battleship同様に同梱せず、設定パスにモデルがある場合のみ有効化・無ければ自動フォールバックする設計とし、ストア説明文にも正確に記載 |
+| ~~ローカルLLM（`LlmCompleter`）がRAM512MB/A53@1GHzで実用速度に達しない~~ | **解消済み（2026-07-09、Phase 3 Go/No-Go実測でNo-Go判定）**: モデルファイル単体で258MB（総RAM512MBの半分以上）という構造的制約が決定打。`LlmCompleter`は未実装のまま、`ProceduralCompleter`のみで機能完成。実測データはNOTES.md参照。実機到着時 or 大幅に小さいモデルが見つかった場合に再検討 |
 
 ---
 

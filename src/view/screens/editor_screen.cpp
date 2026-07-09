@@ -141,6 +141,10 @@ void grid_key_cb(lv_event_t* event) {
         case 'D':
             vm.duplicate_current_frame();
             break;
+        case 'g':
+        case 'G':
+            vm.generate_remaining_frames();
+            break;
         case '+':
         case '=':
             vm.adjust_current_frame_duration(50);
@@ -238,6 +242,7 @@ void EditorScreen::build_content(lv_obj_t* content) {
         "Arrows:Move  Enter:Toggle  C:Color",
         "F/V:Flip  N:New  D:Dup  Bksp:Del",
         "+/-:Duration  S:Save  P:Play",
+        "G:Generate 10 frames from this one",
     };
     for (const auto* line : guide_lines) {
         auto* guide = lv_label_create(panel);

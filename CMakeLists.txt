@@ -640,6 +640,32 @@ target_link_libraries(${PROJECT_NAME}_viewmodel
         chainled_animation_core
 )
 
+# ====================================================
+# chainled_generator sources
+# - AnimationGenerator (ProceduralCompleter; see PLAN.md §2.4). Pure C++,
+#   depends only on chainled_animation_core.
+# - Namespace: chainled::generator
+# ====================================================
+file(GLOB_RECURSE CHAINLED_GENERATOR_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/generator/*.cpp"
+)
+
+add_library(chainled_generator STATIC
+    ${CHAINLED_GENERATOR_SOURCES}
+)
+
+target_link_libraries(chainled_generator
+    PUBLIC
+        chainled_animation_core
+)
+
+target_compile_features(chainled_generator PUBLIC cxx_std_17)
+
+target_link_libraries(${PROJECT_NAME}_viewmodel
+    PUBLIC
+        chainled_generator
+)
+
 # Package deb
 include(cmake/cm0-package.cmake)
 

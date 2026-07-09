@@ -68,6 +68,12 @@ public:
     void duplicate_current_frame();
     void remove_current_frame();
 
+    // ---- Generator (PLAN.md §2.4): rebuilds frames 1..kMaxFrames-1 from
+    // frame 0 via ProceduralCompleter, discarding any existing frames
+    // beyond the seed. See src/generator/ for why LlmCompleter isn't wired
+    // up here yet (NOTES.md "Phase 3: Go/No-Go").
+    void generate_remaining_frames();
+
 private:
     void bump_dirty();
     void clamp_current_frame_index();

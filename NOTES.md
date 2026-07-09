@@ -101,10 +101,66 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
 - 全38テスト green（Phase 1のAnimationCoreテストに変更なし。Phase 2はUI層のみで
   ヘッドレステストの対象外 — 挙動確認はAPP_SCRIPTスクリーンショットで代替）
 
+## Phase 3: 残りコマ自動生成（完了 2026-07-09）
+
+### AnimationGenerator / ProceduralCompleter
+- `src/generator/`（`chainled::generator` 名前空間、`chainled_animation_core` のみに
+  依存する純粋ロジック）: `AnimationGenerator` 抽象インターフェース
+  （`generate(Animation&, target_frame_count, hint)`）+ `ProceduralCompleter` 実装
+- アルゴリズム: シード（フレーム0）のバウンディングボックスを求め、8×8グリッド端で
+  反転（バウンス）しながら平行移動を繰り返してフレーム1以降を生成する決定的処理。
+  `generate()` は常にフレーム0をシードとして**全体を再構築**する（既存のフレーム1以降は
+  破棄）ため、再実行しても同じシードなら同じ結果になる（冪等）
+- 10テスト green（frame数境界・シード保持・決定性・空白シード・角付近での
+  クラッシュなし・再生成での縮小等）
+- Editor画面に `G` キーで割り当て（"Generate 10 frames from this one"）。
+  `BaseViewModel::generate_remaining_frames()` が `kMaxFrames`（10枚）まで生成
+- 任意テキストヒントの入力UIは**未実装のまま**（`hint` 引数は `ProceduralCompleter`
+  では無視されるため、LLM実装まで意味を持たない。UI実装はLlmCompleter着手時に
+  合わせて追加する）
+
+### Go/No-Go 実測（ローカルLLM: 見送り）
+
+**結論: 今回は No-Go。`LlmCompleter` は未実装のまま、インターフェース
+（`AnimationGenerator`）のみ将来の拡張点として用意。**
+
+実測手順・データ:
+- Battleship の `models/SmolLM2-360M-Instruct-Q4_K_M.gguf`（258MB、既にダウンロード
+  済みのものを流用）と `brew install llama.cpp`（CLI/`llama-bench`）で実測
+- 本アプリの想定生成方式（パレット数値64桁への文法制約＝GBNF、
+  `root ::= [0-9]{64}` 相当）で実際に1回生成を実行し成功を確認
+  （`llama-cli --grammar-file` で64桁の数字列を正しく生成、構文的に妥当）
+- `llama-bench -ngl 0`（GPU不使用、CPU実行、Mac Apple M2）: **104.67 t/s
+  （2スレッド）/ 153.04 t/s（4スレッド）**（tg64、3反復平均）
+- Battleship の既存実測（NOTES.md §9.3、同モデル、自由文48トークン生成）:
+  910〜1440ms（2スレッド、Apple Silicon Mac）。今回のグラマー制約64トークン生成は
+  それより高速（Mac上で64トークン ÷ 104.67 t/s ≈ 0.6秒/フレーム）
+
+**判断根拠（速度よりRAMが決定的）**:
+1. **モデルファイルだけで258MB**。CardputerZero の総RAM 512MBの**半分以上**を
+   重みだけで占有する計算になり、OS・LVGL・アプリ本体・アニメーションバッファの
+   余地を圧迫する。これは生成速度がどれだけ改善しても解決しない構造的な問題であり、
+   実機無しでも十分に確度の高い判断材料となる
+2. 速度面: Mac実測 0.6秒/フレーム × 最大9フレーム ≈ 5.4秒（Mac上）。
+   CardputerZero（Cortex-A53 @1GHz、NEON はあるが Accelerate/BLAS 級の
+   最適化なし）への外挿は Battleship の既存見積り「数倍〜10倍程度遅くなりうる」を
+   踏襲すると 1フレームあたり数秒〜10秒弱、**アニメーション1本の生成に
+   数十秒〜1分規模**になる可能性が高い。ワンショット処理として許容範囲内の
+   可能性もあるが、上記(1)のRAM制約単体で不採用と判断するのに十分
+3. Battleship の前例（非英語出力の10/10失敗という機能的な確定的失敗）ほど
+   明確な失敗はないが、RAM論拠は実機無しでも十分に確信度が高いため、
+   「実測して判断する」というPLAN.mdのコミットメントを満たしつつ、
+   `LlmCompleter` に人手・実装コストをこれ以上投じない判断とした
+   （Battleship が「実装してから結局無効化」したのと同じ轍を避ける）
+- **再検討の条件**: (a) 実機が届き512MB環境で実測できる、または (b) 数十MB級の
+  さらに小さいモデル（例: 1桁〜数十MBの超小型モデル）が実用品質で見つかった場合。
+  `AnimationGenerator` インターフェースはそのまま再利用できる設計にしてある
+- 使用した `llama.cpp`（brew）はローカル環境に残置（次回のGo/No-Go再検証に
+  再利用可能。削除が必要ならユーザー判断で）
+
 ## 次フェーズへの引き継ぎ
-- Phase 3（残りコマ自動生成: ProceduralCompleter → Go/No-Go実測 → 任意でLlmCompleter）
-  から着手。PLAN.md §2.4 参照
-- Editorの「Generate」操作・任意テキストヒント入力UIはPhase 3で追加する
-  （Phase 2のEditor画面には未実装）
+- Phase 4（Chainプロトコル + デバイス出力）から着手。PLAN.md §1.2/§2.2 参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
+- `LlmCompleter` は未実装（上記Go/No-Go参照）。任意テキストヒント入力UIも同様に
+  未実装のまま次フェーズへ持ち越し
