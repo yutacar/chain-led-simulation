@@ -11,7 +11,6 @@ const Table kChineseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新建动画";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "打开动画";
-    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "删除动画";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "收发";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "发送动画 (局域网)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "接收动画 (局域网)";
@@ -28,10 +27,11 @@ const Table kChineseTable = [] {
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "颜色:";
     t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "方向键:移动  Enter:切换  C:颜色";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:翻转  N:新增  D:复制  Bksp:删除";
-    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:时长  S:保存  P:播放";
+    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:时长  S:保存  P:播放  X:删除";
     t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:从此帧生成10帧动画";
     t[static_cast<std::size_t>(StrId::EditorDurationHint)] = "%dms (+/-)";
     t[static_cast<std::size_t>(StrId::EditorSaved)] = "已保存";
+    t[static_cast<std::size_t>(StrId::EditorDeleted)] = "已删除";
 
     t[static_cast<std::size_t>(StrId::SimulatorTitle)] = "模拟器   帧 %d/%d  [%s]";
     t[static_cast<std::size_t>(StrId::SimulatorModeRgb)] = "RGB";

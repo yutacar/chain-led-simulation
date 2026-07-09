@@ -18,21 +18,6 @@
 namespace screen {
 namespace {
 
-/// Owns the Load/Delete buttons so delete_animation_cb can hide both in
-/// place after removing the save file, without a full screen rebuild (the
-/// generic ScreenManager::reload_current_screen() path is driven by the
-/// language-change subject and re-navigating to the already-current Title
-/// page is a no-op -- lv_subject only notifies on an actual value change).
-struct TitleUi {
-    viewmodel::BaseViewModel* view_model = nullptr;
-    lv_obj_t* load_button = nullptr;
-    lv_obj_t* delete_button = nullptr;
-};
-
-void title_ui_delete_cb(lv_event_t* event) {
-    delete static_cast<TitleUi*>(lv_event_get_user_data(event));
-}
-
 void new_animation_cb(lv_event_t* event) {
     auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
     if (view_model) {
@@ -41,29 +26,10 @@ void new_animation_cb(lv_event_t* event) {
 }
 
 void load_animation_cb(lv_event_t* event) {
-    auto* ui = static_cast<TitleUi*>(lv_event_get_user_data(event));
-    if (ui && ui->view_model) {
-        ui->view_model->load_animation();
+    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
+    if (view_model) {
+        view_model->load_animation();
     }
-}
-
-void delete_animation_cb(lv_event_t* event) {
-    auto* ui = static_cast<TitleUi*>(lv_event_get_user_data(event));
-    if (!ui || !ui->view_model || !ui->view_model->delete_saved_animation()) {
-        return;
-    }
-    // Hide both buttons in place -- has_saved_animation() is now false, and
-    // an already-focused/focusable hidden object would otherwise trap
-    // keyboard navigation.
-    if (ui->load_button) {
-        lv_group_remove_obj(ui->load_button);
-        lv_obj_add_flag(ui->load_button, LV_OBJ_FLAG_HIDDEN);
-    }
-    if (ui->delete_button) {
-        lv_group_remove_obj(ui->delete_button);
-        lv_obj_add_flag(ui->delete_button, LV_OBJ_FLAG_HIDDEN);
-    }
-    lv_group_focus_next(BaseScreen::shared_group());
 }
 
 void send_receive_cb(lv_event_t* event) {
@@ -82,7 +48,7 @@ void settings_cb(lv_event_t* event) {
 
 lv_obj_t* make_menu_button(lv_obj_t* parent, const char* text) {
     auto* button = lv_button_create(parent);
-    lv_obj_set_size(button, 170, 16);
+    lv_obj_set_size(button, 170, 18);
     auto* label = lv_label_create(button);
     lv_label_set_text(label, text);
     lv_obj_set_style_text_font(label, i18n::font_for_size(12), 0);
@@ -100,10 +66,6 @@ TitleScreen::TitleScreen(viewmodel::BaseViewModel& view_model, app::AssetManager
 void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
-    auto* ui = new TitleUi();
-    ui->view_model = &view_model();
-    lv_obj_add_event_cb(content, title_ui_delete_cb, LV_EVENT_DELETE, ui);
-
     // Logo + subtitle + button stack are nested inside one flex-column
     // "group" so the whole block centers as a unit (both axes) regardless
     // of how many buttons are showing -- a fixed screen-relative offset
@@ -117,13 +79,7 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_set_flex_align(group, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(group, 4, 0);
     lv_obj_clear_flag(group, LV_OBJ_FLAG_SCROLLABLE);
-    // Nudged up further when Load/Delete are both showing (5 buttons: New/
-    // Load/Delete/Send-Receive/Settings) -- true screen-center would clip
-    // into the bottom guide at that worst-case height (see NOTES.md this
-    // was found via screenshot). Kept at a gentler nudge otherwise so the
-    // common 3-button case still reads as centered rather than shifted up.
-    const int group_offset = view_model().has_saved_animation() ? -18 : -6;
-    lv_obj_align(group, LV_ALIGN_CENTER, 0, group_offset);
+    lv_obj_align(group, LV_ALIGN_CENTER, 0, -6);
 
     // "CHAINLED" is the product's brand wordmark, kept in English in every
     // UI language (same treatment as Battleship's "BATTLESHIP" title logo --
@@ -162,8 +118,8 @@ void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_set_size(menu, 170, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(menu, 2, 0);
-    lv_obj_set_style_pad_top(menu, 3, 0);
+    lv_obj_set_style_pad_row(menu, 3, 0);
+    lv_obj_set_style_pad_top(menu, 4, 0);
     lv_obj_clear_flag(menu, LV_OBJ_FLAG_SCROLLABLE);
 
     auto* new_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleNewAnimation));
@@ -177,17 +133,9 @@ void TitleScreen::build_content(lv_obj_t* content) {
     if (view_model().has_saved_animation()) {
         auto* load_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleLoadAnimation));
         reactive::bind_theme(load_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
-        lv_obj_add_event_cb(load_button, load_animation_cb, LV_EVENT_CLICKED, ui);
+        lv_obj_add_event_cb(load_button, load_animation_cb, LV_EVENT_CLICKED, &view_model());
         BaseScreen::enable_arrow_focus_navigation(load_button);
         lv_group_add_obj(BaseScreen::shared_group(), load_button);
-        ui->load_button = load_button;
-
-        auto* delete_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleDeleteAnimation));
-        reactive::bind_theme(delete_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
-        lv_obj_add_event_cb(delete_button, delete_animation_cb, LV_EVENT_CLICKED, ui);
-        BaseScreen::enable_arrow_focus_navigation(delete_button);
-        lv_group_add_obj(BaseScreen::shared_group(), delete_button);
-        ui->delete_button = delete_button;
     }
 
     auto* send_receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendReceive));

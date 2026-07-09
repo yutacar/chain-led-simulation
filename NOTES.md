@@ -659,6 +659,44 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   `docs/screenshots/title_{en,ja,zh}.png`を5ボタン最大構成で更新。
   全107テストgreen
 
+## 削除機能をTitleボタンからEditor画面のキー操作へ移設（完了 2026-07-09、ユーザー指示）
+
+- ユーザー指摘: 「ボタンが増え、画面がくずれたのでアニメーション削除ボタン
+  ではなく、アニメーション画面で削除するようにしてください。」
+  ——直前のTitle画面"Delete Animation"ボタン追加が、レイアウト崩れ
+  （5ボタン最大構成でのバランス調整の煩雑さ）を引き起こしたための巻き戻し
+  ＋再配置指示
+- **Title画面を完全に4ボタン構成へ復元**: `TitleUi`構造体・
+  `title_ui_delete_cb`・`delete_animation_cb`・条件分岐オフセット
+  （`has_saved_animation() ? -18 : -6`）を全て削除し、直前コミット
+  （`850b8a3`）時点の`title_screen.cpp`を`git show`でそのまま復元。
+  `i18n::StrId::TitleDeleteAnimation`も削除
+- **Editor画面にXキーで削除を移設**: `BaseViewModel::delete_saved_animation()`
+  自体は再利用（Titleに実装した時点のものをそのまま流用）。Editor画面の
+  既存ショートカット体系（矢印/Enter/Bksp/C/F/V/N/D/G/+-/S/P、","/"."）に
+  `X`を追加——Bksp（現在のフレームを削除）とは別物であることを明示する
+  ため、コード上のコメントで区別を明記
+- **確認なしの即時削除を維持**（Bksp・Sと同じ設計方針、Title版からの
+  変更なし）。保存済みファイルが無い場合はサイレントに何もしない
+- **ステータス表示**: 既存の`show_saved`（"Saved"表示）と対になる
+  `show_deleted`フラグを追加、押した直後だけ"Deleted"を表示
+  （Sと同じUXパターン）
+- **ガイド行の実装で一度失敗し、その場で修正**: 当初は新しいガイド行を
+  1行追加する形で実装したが、スクリーンショット確認で「+/-:Duration
+  S:Save P:Play G:Generate...」の4行構成パネル（高さ固定96px、既に
+  Phase 2から"最もタイトなレイアウト"として知られていた場所）に5行目を
+  追加すると、パネル自身は高さで視覚的にクリップされないため、下の
+  タイムラインサムネイル行（y=118）と衝突する危険域まで食い込んだ。
+  **新しい行を追加するのではなく、既存の「+/-:Duration S:Save P:Play」
+  行に"X:Del"を追記し「+/-:Dur S:Save P:Play X:Del」と短縮混みで
+  1行に収める**方式に変更して解決（新規`EditorGuideDeleteSaved`
+  StrIdは撤回、`EditorGuideDurationSave`の文言を更新するだけに変更）。
+  この経緯も含め「新しい行を安易に追加する前に、まず既存行への統合を
+  検討する」という教訓として記録
+- EN/JA/ZH全言語でEditor画面（4行ガイド、保存→削除の実操作）・
+  Title画面（4ボタン復元）をスクリーンショットで確認。
+  `docs/screenshots/{editor,title}_{en,ja,zh}.png`を更新。全107テストgreen
+
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に

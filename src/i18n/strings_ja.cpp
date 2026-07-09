@@ -11,7 +11,6 @@ const Table kJapaneseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新規アニメーション";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "アニメーションを開く";
-    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "アニメーションを削除";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "送受信";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "アニメーションを送信 (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "アニメーションを受信 (LAN)";
@@ -28,10 +27,11 @@ const Table kJapaneseTable = [] {
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "色:";
     t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "矢印:移動  Enter:切替  C:色";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:反転  N:追加  D:複製  Bksp:削除";
-    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:表示時間  S:保存  P:再生";
+    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:時間  S:保存  P:再生  X:削除";
     t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:このコマから10コマ自動生成";
     t[static_cast<std::size_t>(StrId::EditorDurationHint)] = "%dms (+/-)";
     t[static_cast<std::size_t>(StrId::EditorSaved)] = "保存しました";
+    t[static_cast<std::size_t>(StrId::EditorDeleted)] = "削除しました";
 
     t[static_cast<std::size_t>(StrId::SimulatorTitle)] = "シミュレータ   フレーム %d/%d  [%s]";
     t[static_cast<std::size_t>(StrId::SimulatorModeRgb)] = "RGB";

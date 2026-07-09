@@ -11,7 +11,6 @@ const Table kEnglishTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "New Animation";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "Load Animation";
-    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "Delete Animation";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "Send / Receive";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "Send Animation (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "Receive Animation (LAN)";
@@ -28,10 +27,11 @@ const Table kEnglishTable = [] {
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "Color:";
     t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "Arrows:Move  Enter:Toggle  C:Color";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:Flip  N:New  D:Dup  Bksp:Del";
-    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:Duration  S:Save  P:Play";
+    t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:Dur  S:Save  P:Play  X:Del";
     t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:Generate 10 frames from this one";
     t[static_cast<std::size_t>(StrId::EditorDurationHint)] = "%dms (+/-)";
     t[static_cast<std::size_t>(StrId::EditorSaved)] = "Saved";
+    t[static_cast<std::size_t>(StrId::EditorDeleted)] = "Deleted";
 
     t[static_cast<std::size_t>(StrId::SimulatorTitle)] = "Simulator   Frame %d/%d  [%s]";
     t[static_cast<std::size_t>(StrId::SimulatorModeRgb)] = "RGB";

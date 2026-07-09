@@ -34,7 +34,6 @@ enum class StrId {
     // no StrId needed.)
     TitleNewAnimation,
     TitleLoadAnimation,
-    TitleDeleteAnimation,      ///< shown next to Load, only when has_saved_animation()
     TitleSendReceive,          ///< combined Title-screen entry -> AppPage::SendReceive chooser
     TitleSendAnimation,
     TitleReceiveAnimation,
@@ -56,10 +55,11 @@ enum class StrId {
     EditorColorLabel,
     EditorGuideMove,
     EditorGuideFrameOps,
-    EditorGuideDurationSave,
+    EditorGuideDurationSave, ///< includes "X:Del" (deletes the on-disk save file, not the current frame)
     EditorGuideGenerate,
     EditorDurationHint,      ///< "%dms (+/-)" (template, %d = milliseconds)
     EditorSaved,
+    EditorDeleted,           ///< shown briefly after X removes the save file (see EditorGuideDeleteSaved)
 
     // ---- Simulator screen ----
     SimulatorTitle,          ///< "Simulator   Frame %d/%d  [%s]" (template, %d/%d = index/count, %s = mode label)

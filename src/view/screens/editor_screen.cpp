@@ -38,6 +38,7 @@ struct EditorUi {
     view::widgets::PixelGrid thumbnails[chainled::core::kMaxFrames];
     lv_observer_t* dirty_observer = nullptr;
     bool show_saved = false;
+    bool show_deleted = false;
 };
 
 EditorUi* ui_for(lv_event_t* event) {
@@ -64,6 +65,9 @@ void refresh_ui(EditorUi* ui) {
     if (ui->show_saved) {
         status += "   ";
         status += i18n::tr(i18n::StrId::EditorSaved);
+    } else if (ui->show_deleted) {
+        status += "   ";
+        status += i18n::tr(i18n::StrId::EditorDeleted);
     }
     lv_label_set_text(ui->status_label, status.c_str());
 
@@ -98,6 +102,7 @@ void grid_key_cb(lv_event_t* event) {
     }
     auto& vm = *ui->view_model;
     ui->show_saved = false;
+    ui->show_deleted = false;
     const uint32_t key = lv_event_get_key(event);
 
     switch (key) {
@@ -165,6 +170,16 @@ void grid_key_cb(lv_event_t* event) {
         case 'S':
             vm.save_animation();
             ui->show_saved = true;
+            refresh_ui(ui);
+            break;
+        case 'x':
+        case 'X':
+            // Deletes the on-disk save file (app/paths.h), not the current
+            // frame -- Backspace already owns that. No-ops silently if
+            // there's nothing saved yet.
+            if (vm.delete_saved_animation()) {
+                ui->show_deleted = true;
+            }
             refresh_ui(ui);
             break;
         default:
