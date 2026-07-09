@@ -32,13 +32,6 @@ void load_animation_cb(lv_event_t* event) {
     }
 }
 
-void quit_cb(lv_event_t* event) {
-    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
-    if (view_model) {
-        view_model->request_quit();
-    }
-}
-
 void send_receive_cb(lv_event_t* event) {
     auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
     if (view_model) {
@@ -55,7 +48,7 @@ void settings_cb(lv_event_t* event) {
 
 lv_obj_t* make_menu_button(lv_obj_t* parent, const char* text) {
     auto* button = lv_button_create(parent);
-    lv_obj_set_size(button, 160, 18);
+    lv_obj_set_size(button, 170, 18);
     auto* label = lv_label_create(button);
     lv_label_set_text(label, text);
     lv_obj_set_style_text_font(label, i18n::font_for_size(12), 0);
@@ -110,12 +103,15 @@ void TitleScreen::build_content(lv_obj_t* content) {
 
     auto* menu = lv_obj_create(content);
     lv_obj_remove_style_all(menu);
-    lv_obj_set_size(menu, 160, LV_SIZE_CONTENT);
+    lv_obj_set_size(menu, 170, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(menu, 2, 0);
+    lv_obj_set_style_pad_row(menu, 3, 0);
     lv_obj_clear_flag(menu, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(menu, LV_ALIGN_CENTER, 0, 4);
+    // Chained off the subtitle (rather than a fixed offset from screen
+    // center) so the menu never overlaps it regardless of exact glyph
+    // metrics -- see NOTES.md, this overlapped in an earlier iteration.
+    lv_obj_align_to(menu, subtitle, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
 
     auto* new_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleNewAnimation));
     reactive::bind_theme(new_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
@@ -145,12 +141,8 @@ void TitleScreen::build_content(lv_obj_t* content) {
     BaseScreen::enable_arrow_focus_navigation(settings_button);
     lv_group_add_obj(BaseScreen::shared_group(), settings_button);
 
-    auto* quit_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleQuit));
-    reactive::bind_theme(quit_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
-    lv_obj_add_event_cb(quit_button, quit_cb, LV_EVENT_CLICKED, &view_model());
-    BaseScreen::enable_arrow_focus_navigation(quit_button);
-    lv_group_add_obj(BaseScreen::shared_group(), quit_button);
-
+    // No Quit button -- Esc (hold) / Home already quits (see guide below),
+    // and dropping it keeps this screen's button stack short (user request).
     auto* guide = lv_label_create(content);
     lv_label_set_text(guide, i18n::tr(i18n::StrId::TitleGuide));
     lv_obj_set_style_text_font(guide, i18n::font_for_size(12), 0);

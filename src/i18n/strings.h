@@ -40,7 +40,9 @@ enum class StrId {
     TitleSendAnimationBle,     ///< device build (CHAINLED_BLE): "Send Animation (BLE)"
     TitleReceiveAnimationBle,  ///< device build (CHAINLED_BLE): "Receive Animation (BLE)"
     TitleSettings,
-    TitleQuit,
+    // (No TitleQuit -- the Quit button was dropped from Title in favor of
+    // the Esc-hold/Home shortcut already documented in TitleGuide, to keep
+    // the button stack short.)
     TitleGuide,
 
     // ---- Send/Receive chooser screen (between Title and Send/Receive) ----

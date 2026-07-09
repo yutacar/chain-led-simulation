@@ -78,10 +78,12 @@ FONT_5X7 = {
 }
 
 # Max PNG dimensions the Title screen layout budgets for the logo (320x170
-# screen; up to 6 stacked menu buttons need most of the vertical space, see
-# title_screen.cpp) -- deliberately smaller than Battleship's 48px budget
-# since this screen's button stack is taller.
-MAX_W, MAX_H = 300, 26
+# screen; see title_screen.cpp). Title's button stack is short (at most 4:
+# New/Load/Send-Receive/Settings -- Quit was dropped in favor of Esc-hold/
+# Home), so there's more headroom than Battleship's own 48px budget assumed
+# for its own button stack; this only needs to leave room for the
+# "Simulation" subtitle plus that button stack.
+MAX_W, MAX_H = 300, 30
 
 # Matches view::color::dark::kPrimary (0x63e2b7) -- see module docstring.
 PALETTE = dict(

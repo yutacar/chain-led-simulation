@@ -96,11 +96,11 @@ TEST_F(I18nCatalogTest, DefaultLanguageIsEnglish) {
 TEST_F(I18nCatalogTest, SetLanguageSwitchesActiveTable) {
     set_language(Lang::JA);
     EXPECT_EQ(current_language(), Lang::JA);
-    EXPECT_STRNE(tr(StrId::TitleQuit), "Quit");
+    EXPECT_STRNE(tr(StrId::TitleSettings), "Settings");
 
     set_language(Lang::ZH);
     EXPECT_EQ(current_language(), Lang::ZH);
-    EXPECT_STRNE(tr(StrId::TitleQuit), "Quit");
+    EXPECT_STRNE(tr(StrId::TitleSettings), "Settings");
 }
 
 TEST_F(I18nCatalogTest, TrfFormatsArgsCorrectly) {
