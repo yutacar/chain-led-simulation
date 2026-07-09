@@ -613,6 +613,9 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
 - EN/JA/ZH全言語でTitle・SendReceive画面のスクリーンショットを再撮影し
   `docs/screenshots/{title,send_receive}_{en,ja,zh}.png`を更新。
   全107テストgreen
+- 追記（同日）: ユーザーから「もう少し白より」の追加指示を受け、
+  `kCursorBorderColor`を`0x808080`→`0xC8C8C8`（より明るいグレー）に
+  再調整。スクリーンショットで視認性向上を確認、全107テストgreen
 
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照

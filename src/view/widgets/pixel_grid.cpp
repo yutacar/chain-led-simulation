@@ -14,12 +14,12 @@ namespace {
 constexpr lv_color_t kUnlitColor = LV_COLOR_MAKE(0x20, 0x20, 0x20);
 /// Mono-preview "lit" color (Chain Mono has no color channel of its own).
 constexpr lv_color_t kMonoLitColor = LV_COLOR_MAKE(0xFF, 0xFF, 0xFF);
-/// Cursor cell border color in the Editor. A fixed mid-gray rather than the
-/// theme's text color (near-black in light mode): black blends into a
+/// Cursor cell border color in the Editor. A fixed light gray rather than
+/// the theme's text color (near-black in light mode): black blends into a
 /// black/dark-drawn pixel, making the cursor hard to see on exactly the
 /// colors it's most likely to be pointing at. Gray reads clearly against
 /// any draw palette color and both themes.
-constexpr lv_color_t kCursorBorderColor = LV_COLOR_MAKE(0x80, 0x80, 0x80);
+constexpr lv_color_t kCursorBorderColor = LV_COLOR_MAKE(0xC8, 0xC8, 0xC8);
 
 }  // namespace
 
