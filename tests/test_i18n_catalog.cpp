@@ -90,7 +90,7 @@ TEST_F(I18nCatalogTest, DefaultLanguageIsEnglish) {
     // leaking a non-English language across the process-wide global.
     set_language(Lang::EN);
     EXPECT_EQ(current_language(), Lang::EN);
-    EXPECT_STREQ(tr(StrId::AppTitle), "Chain LED Simulation");
+    EXPECT_STREQ(tr(StrId::TitleNewAnimation), "New Animation");
 }
 
 TEST_F(I18nCatalogTest, SetLanguageSwitchesActiveTable) {

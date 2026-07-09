@@ -9,7 +9,6 @@ namespace i18n::detail {
 
 const Table kChineseTable = [] {
     Table t{};
-    t[static_cast<std::size_t>(StrId::AppTitle)] = "链式LED模拟器";
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新建动画";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "打开动画";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "发送动画 (局域网)";

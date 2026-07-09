@@ -9,7 +9,6 @@ namespace i18n::detail {
 
 const Table kEnglishTable = [] {
     Table t{};
-    t[static_cast<std::size_t>(StrId::AppTitle)] = "Chain LED Simulation";
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "New Animation";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "Load Animation";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "Send Animation (LAN)";

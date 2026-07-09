@@ -449,6 +449,37 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   D-Busポリシー（`bluetooth`グループ要件、Battleship NOTES.md参照）は
   実機到着後に要確認
 
+## Title画面ロゴ: ASCII-artワードマーク（完了 2026-07-09、ユーザー指示）
+
+- ユーザー指示: 「アプリタイトルは翻訳せずに英語で統一し、Battleshipのときと
+  同じようにアスキーアートで表現してください」
+- Battleshipの`tools/generate_title_logo.py`（"BATTLESHIP"を5x7ドットマトリクス
+  フォント+等角投影ベベルで描画するPillowスクリプト）をそのまま移植。
+  ChainLED版は`TEXT="CHAINLED"`（プロジェクト名・BLE広告名プレフィックス
+  ("CHAINLED-")と統一、"Chain LED Simulation"というフル表示名ではなく
+  ブランドの単語そのものを採用——Battleshipも"BATTLESHIP"というブランド語のみを
+  ロゴにしており、説明的なサブタイトルは含めない方針と揃えた）
+- 5x7フォント表はBattleshipのA/E/H/I/Lをそのまま流用し、CHAINLEDに必要な
+  C・N・Dの3文字を同じクラシック5x7スタイルで追加
+- 配色もBattleshipのvariant A（面色 `0x63e2b7`）をそのまま採用——これは
+  たまたまではなく、ChainLED自身の`view::color::dark::kPrimary`が同じ
+  `0x63e2b7`（テンプレート由来の既定アクセント色を両プロジェクトとも
+  変更しなかったため）なので、「ロゴがアプリ自身のプライマリカラーに
+  合わせてある」というBattleshipの元々の設計意図がそのまま成立する
+- **レイアウト調整が必要だった**: Battleshipのロゴ高さ予算(MAX_H=48)を
+  そのまま使うと、Phase 6で追加したSettings/BLEボタンにより最大6個に
+  増えたTitle画面のボタンスタック(高さ118px)と実測で重なった
+  （スクリーンショットで確認）。MAX_H=26に縮小することで
+  320×170画面・6ボタン最大構成でも重なりなく収まることを確認
+- `title_screen.cpp`: `lv_image_create()` + `assets().resolve("images/
+  title_logo.png")`でPNGを表示、パス解決に失敗した場合は`lv_label`で
+  "CHAINLED"のプレーンテキストにフォールバック（Battleshipと同一パターン）
+- `i18n::StrId::AppTitle`は完全に不要になったため削除（enum・EN/JA/ZH
+  3テーブル・該当テスト`test_i18n_catalog.cpp`のアサーションを全て更新）。
+  ロゴは全UI言語で常に同じ英語ワードマークとして表示される
+- 3言語×Title画面のスクリーンショットで再確認、`docs/screenshots/
+  title_{en,ja,zh}.png`を更新。全107テストgreen
+
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に

@@ -26,7 +26,9 @@ enum class Lang : std::uint8_t {
 
 enum class StrId {
     // ---- Title screen ----
-    AppTitle,
+    // (App/brand title is a fixed English wordmark rendered as ASCII-art,
+    // not translated -- see tools/generate_title_logo.py -- so there is no
+    // AppTitle StrId here.)
     TitleNewAnimation,
     TitleLoadAnimation,
     TitleSendAnimation,

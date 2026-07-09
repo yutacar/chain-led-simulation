@@ -13,6 +13,8 @@
 #include "fonts.h"
 #include "strings.h"
 
+#include <string>
+
 namespace screen {
 namespace {
 
@@ -78,11 +80,30 @@ TitleScreen::TitleScreen(viewmodel::BaseViewModel& view_model, app::AssetManager
 void TitleScreen::build_content(lv_obj_t* content) {
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
-    auto* title = lv_label_create(content);
-    lv_label_set_text(title, i18n::tr(i18n::StrId::AppTitle));
-    lv_obj_set_style_text_font(title, i18n::font_for_size(18), 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
-    reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
+    // "CHAINLED" is the product's brand wordmark, kept in English in every
+    // UI language (same treatment as Battleship's "BATTLESHIP" title logo --
+    // see tools/generate_title_logo.py). Rendered as a pre-generated 3D
+    // ASCII-art PNG rather than an lv_label: LVGL's built-in fonts have no
+    // bevel/shading support, so the isometric-block look is produced
+    // offline with Pillow.
+    auto* title = lv_image_create(content);
+    auto logo_path = assets().resolve("images/title_logo.png");
+    if (!logo_path.empty()) {
+        // lv_image_set_src() lv_strdup()s file-path sources internally, so
+        // this local string does not need to outlive the call.
+        std::string logo_path_str = "A:" + logo_path.string();
+        lv_image_set_src(title, logo_path_str.c_str());
+        lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
+    } else {
+        // Fallback in case the PNG asset failed to resolve -- keep the
+        // title readable instead of showing a blank/broken image.
+        lv_obj_delete(title);
+        title = lv_label_create(content);
+        lv_label_set_text(title, "CHAINLED");
+        lv_obj_set_style_text_font(title, i18n::font_for_size(18), 0);
+        lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
+        reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
+    }
 
     auto* menu = lv_obj_create(content);
     lv_obj_remove_style_all(menu);

@@ -9,7 +9,6 @@ namespace i18n::detail {
 
 const Table kJapaneseTable = [] {
     Table t{};
-    t[static_cast<std::size_t>(StrId::AppTitle)] = "チェーンLEDシミュレーション";
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新規アニメーション";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "アニメーションを開く";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "アニメーションを送信 (LAN)";
