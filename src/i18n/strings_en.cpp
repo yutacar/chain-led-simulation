@@ -11,6 +11,7 @@ const Table kEnglishTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "New Animation";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "Load Animation";
+    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "Delete Animation";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "Send / Receive";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "Send Animation (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "Receive Animation (LAN)";

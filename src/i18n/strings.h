@@ -34,6 +34,7 @@ enum class StrId {
     // no StrId needed.)
     TitleNewAnimation,
     TitleLoadAnimation,
+    TitleDeleteAnimation,      ///< shown next to Load, only when has_saved_animation()
     TitleSendReceive,          ///< combined Title-screen entry -> AppPage::SendReceive chooser
     TitleSendAnimation,
     TitleReceiveAnimation,

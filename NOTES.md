@@ -617,6 +617,48 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   `kCursorBorderColor`を`0x808080`→`0xC8C8C8`（より明るいグレー）に
   再調整。スクリーンショットで視認性向上を確認、全107テストgreen
 
+## 保存アニメーション削除機能の追加（完了 2026-07-09、ユーザー指示）
+
+- ユーザー指摘: 「アニメーションを削除するにはどうしたら良いですか？その機能が
+  ないようなので保存したアニメーションを削除する機能を追加してください」
+  ——保存(`S`キー)・読込(Load Animationボタン)はあったが削除する手段が
+  存在しなかった実際の機能ギャップ
+- `BaseViewModel::delete_saved_animation()`を追加
+  （`std::filesystem::remove(app::default_animation_save_path(), ec)`。
+  読込中のアニメーション本体には触れず、保存ファイルのみ削除）
+- Title画面に"Delete Animation"ボタンを追加（`has_saved_animation()`が
+  真の時のみ、Load Animationのすぐ下に表示——Loadと対になる操作として
+  同じ条件で出し入れする設計）
+- **確認ダイアログ無しの即時削除**を採用: Editorの Backspace（現在フレーム
+  削除）や S（保存）も既に確認無しの即時実行であり、本アプリのキーボード
+  操作主体・省スペースUIの一貫した設計方針に合わせた。ボタン文言
+  "Delete Animation"自体で意図を明確にすることで代替
+- **実装上の工夫**: 削除後にLoad/Deleteボタンを画面遷移なしで即座に隠す
+  必要があったが、既存の`ScreenManager::reload_current_screen()`は
+  言語切替用の`language_version_subject`監視でのみ駆動されており、
+  「現在のページに再度show_page()」は同一ページのため`lv_subject`が
+  変更なしと判定して発火しない（no-op）。新たに`TitleUi`という小さな
+  ヒープ構造体（Load/Deleteボタンへの生ポインタを保持、
+  `LV_EVENT_DELETE`でクリーンアップ——Editor/Send画面で既に使っている
+  パターンを踏襲）を導入し、削除コールバック内で該当ボタンを
+  `lv_group_remove_obj()`+`LV_OBJ_FLAG_HIDDEN`により直接非表示化する
+  方式で解決（flexレイアウトはhidden要素を自動的に詰めてくれる）
+- **レイアウトの再調整が必要だった**: Load+Delete追加で最大ボタン数が
+  4→5個（New/Load/Delete/Send・Receive/Settings）に増加、既存の
+  センタリング設定のままだと最悪ケース（5ボタン×JA/ZHのCJK行高）で
+  再度ガイド文言と重なった。ボタン高さ18→16px・メニュー内行間3→2pxに
+  縮小した上で、**グループの垂直オフセットを`has_saved_animation()`の
+  真偽で条件分岐**（保存済みアニメーションあり: -18、無し: -6）——
+  固定値1つで全ボタン数に対応しようとすると「3ボタン時は不自然に
+  上寄り」か「5ボタン時に重なる」のどちらかに倒れてしまうため、
+  ボタン数で変わる実際の高さに応じてオフセット自体を出し分ける方式に
+  変更。3ボタン・5ボタン・EN/JA/ZH全組み合わせをスクリーンショットで
+  確認し重なりが無いことを確認
+- 削除→ボタン即時非表示→再度New Animationした場合にLoad/Deleteボタンが
+  出ないこと（＝実際にファイルが消えている）を実プロセスで確認。
+  `docs/screenshots/title_{en,ja,zh}.png`を5ボタン最大構成で更新。
+  全107テストgreen
+
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に

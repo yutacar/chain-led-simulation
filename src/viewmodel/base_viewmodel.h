@@ -58,6 +58,10 @@ public:
     void new_animation();
     bool load_animation();
     bool save_animation() const;
+    /// Removes the save file, if any. Returns false if there was nothing to
+    /// delete (has_saved_animation() was already false) or removal failed.
+    /// Does not touch the animation currently being edited in memory.
+    bool delete_saved_animation() const;
 
     // ---- Editing ops (Editor screen) ----
     void move_cursor(int dx, int dy);

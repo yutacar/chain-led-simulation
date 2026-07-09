@@ -11,6 +11,7 @@ const Table kJapaneseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新規アニメーション";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "アニメーションを開く";
+    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "アニメーションを削除";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "送受信";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "アニメーションを送信 (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "アニメーションを受信 (LAN)";

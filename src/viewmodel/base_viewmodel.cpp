@@ -121,6 +121,11 @@ bool BaseViewModel::save_animation() const {
     return chainled::core::save_animation_to_file(animation_, app::default_animation_save_path());
 }
 
+bool BaseViewModel::delete_saved_animation() const {
+    std::error_code ec;
+    return std::filesystem::remove(app::default_animation_save_path(), ec);
+}
+
 void BaseViewModel::move_cursor(int dx, int dy) {
     cursor_x_ = clampi(cursor_x_ + dx, 0, chainled::core::kFrameSize - 1);
     cursor_y_ = clampi(cursor_y_ + dy, 0, chainled::core::kFrameSize - 1);

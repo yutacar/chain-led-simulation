@@ -11,6 +11,7 @@ const Table kChineseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新建动画";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "打开动画";
+    t[static_cast<std::size_t>(StrId::TitleDeleteAnimation)] = "删除动画";
     t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "收发";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "发送动画 (局域网)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "接收动画 (局域网)";
