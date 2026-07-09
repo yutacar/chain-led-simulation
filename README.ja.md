@@ -22,6 +22,26 @@ English README is available at [README.md](README.md).
 
 日本語・簡体字中国語 UI を含む追加のスクリーンショットは [`docs/screenshots/`](docs/screenshots/)（`*_ja.png` / `*_zh.png` ファイル）にあります。
 
+## インストール
+
+**CardputerZero Hub AppStore から**: まだ未掲載です——詳細は下記「[現在の状況](#現在の状況)」参照。
+
+**手動インストール**（[開発者向け情報](#開発者向け情報)を参考に`.deb`を自分でビルドした場合）:
+
+```shell
+sudo dpkg -i chainled_1.0.0_arm64.deb
+# 依存パッケージの解決も同時に行いたい場合:
+sudo apt install --no-install-recommends ./chainled_1.0.0_arm64.deb
+```
+
+インストール後、APPLaunch にアプリが表示されます。
+
+### 実機で動作させる際の注意
+
+- **BLE（デフォルトの配布モード）** を使うには、端末の Bluetooth スタック（BlueZ）が起動していること、およびアプリを実行するユーザーが `bluetooth` グループに属していることが必要です（`sudo usermod -aG bluetooth <user>` 実行後に再ログイン）。設定が無い場合、アプリはクラッシュせず起動に失敗します。
+- **TCP/LAN経路** はデスクトップ開発用です（固定ポート、`127.0.0.1`のみ）——実機での配布手段としては意図されていません。
+- 実際のChain Mono/RGB出力はGroveのUARTポートを使用します。シリアルデバイスが既定のパスに無い場合は`CHAINLED_UART_DEVICE`を設定してください。
+
 ## キー操作
 
 | 画面 | キー | 動作 |

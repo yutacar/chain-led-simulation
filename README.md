@@ -22,6 +22,26 @@ A dot-animation editor and LED-matrix simulator built for the [M5Stack Cardputer
 
 More screenshots, including the Japanese and Simplified Chinese UI, are in [`docs/screenshots/`](docs/screenshots/) (see the `*_ja.png` / `*_zh.png` files).
 
+## Installation
+
+**From the CardputerZero Hub AppStore**: not yet listed — see [Status](#status) below.
+
+**Manual install**, once you've built a `.deb` yourself (see [Development](#development)):
+
+```shell
+sudo dpkg -i chainled_1.0.0_arm64.deb
+# or, to also pull in any missing dependencies:
+sudo apt install --no-install-recommends ./chainled_1.0.0_arm64.deb
+```
+
+The app appears in APPLaunch after installation.
+
+### Notes for running on real hardware
+
+- **BLE (default distribution mode)** requires the device's Bluetooth stack (BlueZ) to be running and the app's user account to be in the `bluetooth` group (`sudo usermod -aG bluetooth <user>`, then re-login). Without this, BLE features fail to start rather than crashing.
+- **TCP/LAN mode** is a desktop development path (fixed port, `127.0.0.1` only) — it isn't intended as a real-device distribution method.
+- Real Chain Mono/RGB output uses the Grove UART port; set `CHAINLED_UART_DEVICE` if the serial device isn't at the default path.
+
 ## Key Controls
 
 | Screen | Key | Action |
@@ -69,7 +89,9 @@ For Intel Macs, use the `darwin-x86-64` presets instead. See [`NOTES.md`](NOTES.
 
 ### Status
 
-This project is under active development (see [`PLAN.md`](PLAN.md) for the full phase plan). Phases 0–7 are complete: animation core, editor/simulator UI, procedural frame generation (with a local-LLM path evaluated and rejected — RAM budget, see `NOTES.md` "Phase 3: Go/No-Go"), Chain Mono/RGB protocol + device output, TCP and BLE distribution, and EN/JA/ZH localization. Packaging (`.deb`) and real-hardware validation (Phase 8–9) have not started yet — there is no installable package or Hub AppStore listing at this time; building from source (above) is the only way to run it.
+This project is under active development (see [`PLAN.md`](PLAN.md) for the full phase plan). Phases 0–8 are complete: animation core, editor/simulator UI, procedural frame generation (with a local-LLM path evaluated and rejected — RAM budget, see `NOTES.md` "Phase 3: Go/No-Go"), Chain Mono/RGB protocol + device output, TCP and BLE distribution, EN/JA/ZH localization, and packaging — a real `.deb` builds cleanly from the CardputerZero cross-build, [`prepublish_check.py`](https://github.com/CardputerZero/skill) passes with zero errors/warnings, and a clean-room `apt install`/`apt remove` round trip has been verified in a fresh container.
+
+**Not yet done**: real-hardware validation and the CardputerZero Hub AppStore submission (`czdev publish`) — both require physical CardputerZero + Chain Mono/RGB hardware and the maintainer's own GitHub OAuth login, neither of which are available in the environment this project has been developed in so far. See [`NOTES.md`](NOTES.md) "Phase 9" for the exact pending checklist. Until that's done, there's no Hub AppStore listing — building your own `.deb` from source (above) is the only way to install it.
 
 ### Architecture
 

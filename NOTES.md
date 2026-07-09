@@ -697,21 +697,177 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
   Title画面（4ボタン復元）をスクリーンショットで確認。
   `docs/screenshots/{editor,title}_{en,ja,zh}.png`を更新。全107テストgreen
 
-## 次フェーズへの引き継ぎ
-- Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
+## Phase 8: パッケージング（完了 2026-07-09）
+
+ユーザー指示: 「フェーズ８，９も実施し、ドキュメントも更新してください」。
+Battleship（同じCardputerZeroテンプレート・同じ提出プロセスの先行プロジェクト）
+がこの段階を実際に完走していたため、着手前に専用サブエージェントで
+Battleshipの`cmake/cm0-package.cmake`・`app-builder.json`・ラッパー
+スクリプト・`.desktop`テンプレート・アイコン生成・`prepublish_check.py`
+実行結果・クリーンルーム検証結果を詳細調査してから移植した。
+
+### バージョン
+- `project(chainled VERSION 0.0.1 → 1.0.0)`。Battleship自身も
+  パッケージング段階で`1.0.0`を採用しており（実際に公開されたバージョン、
+  本セッション冒頭のgit logで確認済み: "Battleship v1.0.0 for
+  CardputerZero"）、同じ節目での同じ判断として踏襲
+
+### `cmake/cm0-package.cmake` 全面書き換え
+テンプレート初回インポート（`8c5328b`）以来一度も変更されていなかった
+ことをgit logで確認した上で、Battleshipの実装をそのまま移植・アプリ名
+差し替え:
+- `APP_DISPLAY_NAME "ChainLED"`、package名（小文字）`chainled`
+- `APP_MAINTAINER "yutacar <yutacar@yutacar.net>"`
+  ——**GitHub確認済みメールアドレスと一致必須**（czdev/prepublish_checkが
+  email_mismatchで拒否する）。gmailアドレスではなくこちらを使うことは
+  以前のセッションでユーザーから明示された既知の注意点
+  （[[user-github-email]]メモリ参照）
+- **systemdサービスを完全撤去**（APPLaunchは常駐サービスを想定せず、
+  審査上のリスク項目でもあるため）。`cmake/templates/app.service.in`を
+  削除
+- **ラッパースクリプト方式を新規導入**: `cmake/templates/app-wrapper.sh.in`
+  を新設、`.desktop`の`Exec=`はバイナリ直接ではなくラッパー
+  （`bin/chainled-launch`）を指す（提出ガイドの「引数・作業ディレクトリ・
+  環境変数設定はExec行ではなくラッパースクリプトに書く」という要件通り）
+- インストール先をAPPLaunch準拠のレイアウトに変更:
+  `usr/share/APPLaunch/{applications,bin,share/images}/` （ランチャー向け）
+  + `usr/share/chainled/{fonts,images}/`（アプリ自身の`AssetManager`が
+  参照する絶対パス、既存のまま）
+- 依存関係死蔵の削除: `assets/audio/click.wav`（`src/`を全文grepして
+  参照ゼロと確認済み）と旧テンプレートアイコン
+  （`template.png`/`template_80.png`/`template_100.png`）を削除
+- `CPACK_DEBIAN_PACKAGE_DEPENDS`を実測値に更新（後述）
+
+### 新規アイコン生成
+`title_logo.png`（横長のワードマークバナー）とは別に、正方形の
+ストア/ランチャーアイコンが必要だったため`tools/generate_app_icon.py`
+を新規作成。デザイン: 8x8のハート型ピクセルパターンを、実際の
+`pixel_grid.cpp`と同じ視覚言語（塗りつぶし正方形セル+小さな間隔、暗い
+背景に対して明るい"点灯"色）で描画——「このアプリで作れるものそのもの」
+を偽りなく体現するアイコンにする狙い。256×256、赤一色（小サイズでの
+視認性を優先、ロゴのRGB多色化はここでは行わない）。
+`assets/images/chainled.png`として生成、`app-builder.json`の
+`store.icon`とAPPLaunchランチャーアイコンの両方に使用
+
+### `app-builder.json` 新規作成
+Battleshipと同じ構造（`package_name`/`app_name`/`version`/`description`/
+`store{summary,categories,icon,screenshots,locales}`、localesは
+zh-CN/en/ja）。`categories`は`["Graphics"]`（Battleshipの`["Games"]`とは
+異なり、本アプリはゲームではなくドット絵/LEDアニメーション作成ツール
+のため）。screenshots 4枚は既存の`docs/screenshots/`から
+（editor/simulator/send_receive/settings の各`_en.png`、320×170の
+クリーンなフレームバッファ画像そのまま）`store/screenshots/`にコピー
+——追加の撮影は不要だった
+
+### 実機ビルド + 依存関係の実測
+Phase 4/7で確立済みのDocker手順（`debian:trixie`ネイティブarm64
+コンテナ + キャッシュ済みBSP sysroot）をそのまま再利用し、今回は
+`-DCMAKE_BUILD_TYPE=Release -DCHAINLED_BLE=ON`でconfigure→build→
+`cpack -G DEB`まで実施。生成物: `dist/chainled_1.0.0_arm64.deb`
+（784936バイト、sha256:
+`19eb4b9d3ab6c4cee5742818be66af2f1fcd1ed040d42dd06c5f8f2d7f215cea`）。
+`readelf -d`で実バイナリのNEEDEDを確認したところ
+（`libsystemd.so.0`/`libfreetype.so.6`/`libpng16.so.16`/
+`libstdc++.so.6`/`libgcc_s.so.1`/`libc.so.6`）、事前に見積もっていた
+`CPACK_DEBIAN_PACKAGE_DEPENDS`の値と完全一致——fmtは静的リンク、
+jpeg/zlibはリンカの`--as-needed`で自動的に外れる（Battleshipと同じ
+パターン）ため追加の調整は不要だった
+
+### `prepublish_check.py` 実行
+`CardputerZero/skill`リポジトリ（`CardputerZero-AppBuilder`ではなく
+こちら。Battleshipの調査結果通り）を取得し、実際に生成した`.deb`に対して
+`cardputer-app-publish/scripts/prepublish_check.py --deb <deb> --app-dir .`
+を実行。**結果: `Prepublish check passed.`（ERROR 0 / WARNING 0、
+初回実行で一発合格——Battleshipは初回2件のWARNINGがあったのに対し、
+今回はBattleshipの調査結果を先に踏まえてapp-builder.jsonに
+`version`/`description`を最初から含めていたため、その分の手戻りが
+無かった）**
+
+### クリーンルーム install/remove 検証
+ビルドに使ったコンテナとは別の、**新規`debian:trixie`コンテナ**で
+`apt install ./chainled_1.0.0_arm64.deb`を実施——申告した`Depends`
+（`libpng16-16`→実際は`libpng16-16t64`という移行用パッケージ名に
+自動解決、`libbrotli1`も推移的依存として導入）が全て自動解決され
+インストール成功。`dpkg -L chainled`で期待通りのファイル一覧を確認、
+`ldd`で全共有ライブラリのロードを確認（未解決なし）。
+`LV_LINUX_FBDEV_DEVICE`環境変数を設定した状態でラッパー経由起動を
+試行——ヘッドレスコンテナのため`cannot open framebuffer device`で
+失敗するのは想定通り（実機ならフレームバッファが存在するため問題ない、
+Battleshipの同じ検証と同一の想定内エラー）。最後に`apt-get remove`で
+APPLaunchエントリ含め完全にアンインストールされることを確認
+
+### ドキュメント更新
+README.md/README.ja.md/THIRD_PARTY_LICENSES.md（前回のドキュメント
+整備パスで新規作成済み）の「まだパッケージングされていない」という
+記述を、実際に`.deb`がビルド・prepublish合格・クリーンルーム検証済み
+という現状に合わせて更新（後述「次フェーズへの引き継ぎ」の直前に
+反映済み）
+
+## Phase 9: 実機検証 → publish（ヘッドレス範囲のみ完了、実機検証は未実施）
+
+**重要: Phase 9は実機（CardputerZero本体 + Chain Mono/RGBユニット）と
+ユーザー自身のGitHub OAuthログインが必須のため、このセッションでは
+完了できない。** Battleship自身も同じ理由で実機検証・`czdev publish`を
+最後まで未実施のまま残しており（Battleship NOTES.md確認済み）、今回も
+同じ前提を踏襲する。
+
+### このセッションで確認できたこと（ヘッドレス範囲）
+- `czdev doctor`実行——**"All required dependencies present."**
+  （C compiler/cmake/pkg-config/SDL2/SDL2_image/SDL2_mixer/freetype/git
+  全てOK。Battleshipのセッションではpkg-config未導入で引っかかっていたが、
+  今回はDocker環境ではなくこのMac自体に事前に導入済みだったため通過）
+- `czdev login`・`czdev publish`は**実行していない**——OAuthログインは
+  ユーザー本人の操作が必須（GitHubアカウントでの認証）、かつ
+  `czdev publish`は`CardputerZero/packages`への実PRを立てる公開・
+  不可逆に近いアクションのため、ユーザーの明示的な実行指示なしに
+  実施すべきでないと判断した
+
+### ユーザー側でのPhase 9残作業チェックリスト
+実機到着後、以下を順に実施:
+
+- [ ] CardputerZero実機に`dist/chainled_1.0.0_arm64.deb`を転送し
+      `sudo apt install --no-install-recommends ./chainled_1.0.0_arm64.deb`
+      でインストール
+- [ ] APPLaunchから起動できること、アイコン・タイトルが正しく表示される
+      ことを確認
+- [ ] 320×170の実LCD上でレイアウト崩れが無いこと（本セッションでは
+      デスクトップSDLシミュレータのみで確認、実LCD特有のガンマ/色味の
+      違いは未検証）
+- [ ] EN/JA/ZH全言語でCJK文字が豆腐化しないことを実機で確認
+      （デスクトップでは確認済みだが、実機のFreeTypeレンダリングパスは
+      別経路のため再確認推奨）
+- [ ] Esc短押し/長押し・Homeキーの規約が実キーボードで意図通り動作する
+      こと
+- [ ] Chain Mono / Chain RGB実機をGroveポートに接続し、Simulator画面の
+      `R`キーで実際にLEDマトリクスへ出力されること（`CHAINLED_UART_DEVICE`
+      環境変数が必要な場合はラッパースクリプト経由で設定）。Monoユニットの
+      ビット順が想定通りか実機で確認
+- [ ] CardputerZero実機2台間でBLEアニメーション配布が実際に成立すること
+      （送信→受信→エディタへの反映）。Phase 7で未検証だった実際の
+      ATT_MTU交渉結果・ペアリング無しでの接続可否を確認
+- [ ] アンインストール後（`apt remove chainled`）に実機上へ痕跡が
+      残らないこと
+- [ ] `czdev login`（GitHub OAuthログイン、ユーザー操作）
+- [ ] `czdev publish --deb dist/chainled_1.0.0_arm64.deb`
+      （`CardputerZero/packages`へのPRを作成）
+- [ ] 生成されたPRの内容確認・テスト機材/OS欄への記入・マージ
+
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
 - `LlmCompleter` は未実装（Phase 3のGo/No-Go参照）。任意テキストヒント入力UIも
   同様に未実装のまま持ち越し
-- Chain Mono/RGBとの実機疎通・Monoのビット順確認は Phase 9（実機到着後）
 - BLEのデバイス選択UI（現状は最初に見つかったホストへ自動join）・
   ニックネーム設定・ペアリング/ボンディングは意図的に v1 スコープ外
-  （Phase 7設計判断）。実機2台での実配布確認・実際のATT_MTU挙動確認は
-  Phase 9
+  （Phase 7設計判断）
 - ReceiveScreenの初回connect()/join()は失敗時に自動リトライしない
   （TCP経路: 送信側が先にlisten()していない状態で受信側がconnect()すると
   繋がらないままになる。BLE経路: `start_join()`失敗時はスキャンを継続する
   よう対応済みだが、`scan_failed`（アダプタ無し等）からの自動リカバリは無い）
+
+## 次フェーズへの引き継ぎ
+- Phase 9の実機検証・`czdev login`/`czdev publish`はユーザー本人が
+  ハードウェア到着後に実施（上記チェックリスト参照）。それ以外の
+  開発作業は全フェーズ完了
 - 新しいCJK文字（新規StrId追加時など）を`strings_ja.cpp`/`strings_zh.cpp`に
   加えたら`tools/generate_cjk_fonts.py`の再実行を忘れずに（`pip install
   fonttools brotli`が必要、CIでの自動チェックは無し）

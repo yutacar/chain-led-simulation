@@ -3,14 +3,16 @@
 This project's own code is MIT-licensed (see [`LICENSE`](LICENSE)). It builds on and links against
 the third-party components listed below, each under its own license.
 
-> **Packaging status**: ChainLED has not yet reached Phase 8 (packaging) of its development plan
-> (see [`PLAN.md`](PLAN.md) / [`NOTES.md`](NOTES.md)) — no `.deb` has been built or published yet,
-> so there is no "in the shipped package" reality to report. The table below describes what each
-> dependency is used for and how it's currently pulled in by the build (fetched from source,
-> resolved from the system package manager, etc.), based on the CMake configuration as it stands
-> today. This will need a follow-up pass once packaging (`cmake/cm0-package.cmake`, still the
-> unmodified CardputerZero template boilerplate as of this writing) is actually customized for
-> ChainLED.
+> **Packaging status**: Phase 8 (packaging) is complete — see [`PLAN.md`](PLAN.md) /
+> [`NOTES.md`](NOTES.md) "Phase 8". A real `.deb` (`chainled_1.0.0_arm64.deb`) has been built via the
+> CardputerZero cross-build, `prepublish_check.py` passes with zero errors/warnings, and a
+> clean-room `apt install`/`apt remove` round trip has been verified in a fresh container. The
+> table below describes what each dependency is used for and how it's pulled in by the build
+> (fetched from source, resolved from the system package manager at build time, or listed in the
+> `.deb`'s own `Depends:` field — see `cmake/cm0-package.cmake`'s `CPACK_DEBIAN_PACKAGE_DEPENDS`,
+> hand-verified against the real cross-built binary's `readelf -d` output). Phase 9 (real-hardware
+> validation and Hub AppStore submission via `czdev publish`) is still pending — see `NOTES.md`
+> "Phase 9" for the checklist.
 
 | Component | License | Used for | How it's pulled in |
 | --- | --- | --- | --- |
@@ -29,15 +31,16 @@ the third-party components listed below, each under its own license.
   (https://github.com/CardputerZero/template), which is itself MIT-licensed
   (`SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD`, `SPDX-License-Identifier: MIT`
   headers preserved unmodified throughout the original files). See [`LICENSE`](LICENSE).
-- **`assets/fonts/LICENSE.txt`** documents the Inter font family (OFL-1.1), Kenney input-prompt
-  icons (CC0), and Phosphor Icons (MIT) — all inherited from the upstream template, and currently
-  unused by this app's own UI (Title/Editor/Simulator/Send/Receive/Settings all use LVGL's builtin
-  Montserrat bitmap font plus the Noto Sans CJK subsets, not Inter or Phosphor — see
-  [`NOTES.md`](NOTES.md) "Phase 6"). **It does not mention Noto Sans JP/SC**, which are the fonts
-  this project actually generates and loads. This should be corrected (and the Inter/Kenney/Phosphor
-  entries either removed or clearly marked as inherited-but-unused) once packaging work in Phase 8
-  decides exactly what `assets/fonts/` ships in the `.deb` — same gap Battleship's own
-  `THIRD_PARTY_LICENSES.md` flagged in its own audit, not yet fixed there either.
+- **`assets/fonts/LICENSE.txt`** now documents Noto Sans JP/SC (OFL-1.1) as entry 0, added as part
+  of Phase 8 since this file is what actually ships in the `.deb`
+  (`cmake/cm0-package.cmake` installs it alongside `assets/fonts/NotoSans*.otf`, and again as
+  `third-party-assets-license.txt` under the package's doc directory). It also still documents the
+  Inter font family (OFL-1.1), Kenney input-prompt icons (CC0), and Phosphor Icons (MIT), all
+  inherited from the upstream template and unused by this app's own UI (Title/Editor/Simulator/
+  Send/Receive/Settings all use LVGL's builtin Montserrat bitmap font plus the Noto Sans CJK
+  subsets, not Inter or Phosphor — see [`NOTES.md`](NOTES.md) "Phase 6") — those entries are kept
+  for provenance but are inherited-but-unused, same as Battleship's own
+  `THIRD_PARTY_LICENSES.md` documents for its own equivalent leftovers.
 - **Chain Mono/RGB protocol**: the UART daisy-chain protocol implemented in `src/chain/` was
   reverse-engineered from the official [m5stack/M5Chain](https://github.com/m5stack/M5Chain)
   Arduino library's source (MIT-licensed) rather than copied from it — no code from that

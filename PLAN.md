@@ -172,8 +172,8 @@ Battleship の `ITransport` 抽象を踏襲。ただし本アプリはターン�
 | **5. 配布プロトコル + TCP開発経路** | ✅ 完了。チャンク転送プロトコル + 再送層 + `LoopbackTransport`/`TcpTransport` 実装、Send/Receive UI | 2プロセス（Mac）でアニメーション転送が完走 ✅、ロス注入テスト green ✅（実プロセス検証で実バグ2件発見・修正、詳細NOTES.md） |
 | **6. i18n + 設定永続化** | ✅ 完了。文字列カタログ（EN/JA/ZH, `chainled_i18n`）、CJK フォントサブセット（`tools/generate_cjk_fonts.py` で生成、各32KB）、設定ファイル永続化（`~/.config/chainled/settings.conf`）、Settingsスクリーン（選択即反映） | 3言語で全画面スクショOK ✅（`docs/screenshots/{title,editor,simulator,send,settings}_{en,ja,zh}.png`）、設定がUI選択→プロセス再起動でも保持されることを実プロセスで確認 ✅（詳細NOTES.md） |
 | **7. BLE 配布（実機・デフォルト経路）** | ✅ 完了。`BleTransport`/`BleScanner` 実装（sd-bus/BlueZ、NUS互換GATT、Battleshipから移植）、送信側フラグメンテーション追加、Send/Receive画面をCHAINLED_BLE有効時はBLE経路に切替 | ヘッドレステスト green ✅（107テスト、macOSデスクトップはTCP経路のみコンパイル）+ デバイスビルド成功 ✅（Docker+BSP、CHAINLED_BLE=ONでaarch64 ELF PIE生成・libsystemd.so.0リンク確認）。実機2台での実配布は Phase 9 |
-| **8. パッケージング** | APPLaunch 準拠 .deb 化、app-builder.json、prepublish_check、（Go判定時）LLMモデル同梱なし運用のREADME整備 | prepublish 全パス |
-| **9. 実機検証 → publish** | CardputerZero実機 + Chain Mono/RGB 実機での動作確認（UART出力・BLE配布・Esc規約・LlmCompleter実測等）、czdev publish | 実機チェックリスト完走、PR 提出 |
+| **8. パッケージング** | ✅ 完了。`cmake/cm0-package.cmake`をAPPLaunch準拠に全面書き換え（ラッパースクリプト・systemdサービス廃止・依存関係の実測反映）、`app-builder.json`新設（EN/JA/ZH）、専用アプリアイコン新規作成、README全面整備 | prepublish 全パス ✅（ERROR 0 / WARNING 0）、Docker debian:trixieでのクリーンルームinstall/remove実証済み |
+| **9. 実機検証 → publish** | CardputerZero実機 + Chain Mono/RGB 実機での動作確認（UART出力・BLE配布・Esc規約等）、czdev publish | ヘッドレス範囲（ビルド・パッケージング・prepublish）は完了 ✅。**実機チェックリスト・czdev login/publishはユーザーのハードウェア到着・OAuth操作待ち**（詳細NOTES.md「Phase 9チェックリスト」） |
 
 ### フェーズ間の依存
 - Phase 1 → 2 は直列。Phase 3（残りコマ自動生成）は Phase 2 完了後（エディタが要る）に着手

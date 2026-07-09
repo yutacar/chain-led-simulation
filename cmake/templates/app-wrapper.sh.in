@@ -1,0 +1,20 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 yutacar
+# SPDX-License-Identifier: MIT
+#
+# APPLaunch launches this wrapper (not the binary directly) so any future
+# argument/working-directory/environment-variable needs live here instead of
+# in the .desktop Exec= line (App Submission Guide: "Put arguments,
+# working-directory changes, and framebuffer environment setup in a wrapper
+# script rather than in Exec.").
+#
+# @PROJECT_NAME@ itself does not require a particular CWD or any arguments:
+# its asset lookup (src/app/asset_manager.cpp) always falls back to the
+# absolute path /usr/share/@APP_NAME@ regardless of CWD, and its framebuffer
+# device selection (src/app/app.cpp) already reads LV_LINUX_FBDEV_DEVICE from
+# the environment at runtime rather than hard-coding /dev/fb0 -- so this
+# wrapper only needs to hand off to the real executable installed alongside
+# it. It exists as the stable Exec= target so those needs (e.g.
+# CHAINLED_UART_DEVICE for a non-default Chain Mono/RGB serial port) can be
+# added here later without ever touching the .desktop file again.
+exec "$(dirname "$0")/@PROJECT_NAME@" "$@"

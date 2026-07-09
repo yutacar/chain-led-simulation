@@ -5,6 +5,29 @@ This directory contains fonts and icon assets under multiple licenses.
 Each asset is governed by its own license terms.
 
 ------------------------------------------------------------
+0. Noto Sans JP / Noto Sans SC (subset)
+------------------------------------------------------------
+
+Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name
+'Noto'. Noto is a trademark of Google LLC.
+https://github.com/notofonts/noto-cjk
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1 (OFL-1.1).
+Subsetted at build time by tools/generate_cjk_fonts.py to only the glyphs
+this app actually uses; the OFL permits redistributing modified/subsetted
+copies under the same license.
+
+License summary:
+- The font may be used, studied, modified, and redistributed freely
+- The font may be embedded in software and documents
+- The font may NOT be sold by itself
+- Derivative fonts must remain under OFL-1.1
+- Reserved Font Names may not be used in modified versions
+
+Full license text: see the SIL Open Font License, Version 1.1 text under
+"Inter Font Family" below (the same license text applies).
+
+------------------------------------------------------------
 1. Inter Font Family
 ------------------------------------------------------------
 
