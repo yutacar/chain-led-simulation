@@ -11,6 +11,7 @@ const Table kJapaneseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新規アニメーション";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "アニメーションを開く";
+    t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "送受信";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "アニメーションを送信 (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "アニメーションを受信 (LAN)";
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "アニメーションを送信 (BLE)";
@@ -18,6 +19,9 @@ const Table kJapaneseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "設定";
     t[static_cast<std::size_t>(StrId::TitleQuit)] = "終了";
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc長押し/Home:終了";
+
+    t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "送受信";
+    t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:選択   Esc:戻る";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "エディタ   フレーム %d/%d";
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "色:";

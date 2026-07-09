@@ -480,6 +480,44 @@ PLAN.md を Rev.2 に改訂（新設 Phase 3、以降 Chain/配布/i18n/BLE/パ�
 - 3言語×Title画面のスクリーンショットで再確認、`docs/screenshots/
   title_{en,ja,zh}.png`を更新。全107テストgreen
 
+## Title画面: サブタイトル追加 + Send/Receiveボタン統合（完了 2026-07-09、ユーザー指示）
+
+- ユーザー指示: 「Simulationの文字をロゴの下に小さく入れてほしい」
+  「ボタンがギュウギュウなので、新規作成、送受信、設定、終了にし、
+  送受信のなかで受信か送信を選ぶようにしてほしいです。文言は今のままで。」
+- **サブタイトル**: ロゴ直下に固定英語リテラル"Simulation"を小さめの
+  フォント・70%不透明度で追加（`lv_obj_align_to(subtitle, title,
+  LV_ALIGN_OUT_BOTTOM_MID, 0, 1)`でロゴ画像/フォールバックラベルどちらに
+  対しても相対配置）。ロゴ本体と同じ「翻訳しない」方針——i18nカタログには
+  追加せず、直接リテラルとして埋め込み
+- **Send/Receiveボタン統合**: Title画面に個別にあった"Send Animation"/
+  "Receive Animation"の2ボタンを1つの"Send / Receive"（JA: 送受信、
+  ZH: 收发）ボタンに統合。押すと新設の`SendReceiveScreen`
+  （`AppPage::SendReceive`、`send_receive_screen.{h,cpp}`）に遷移し、
+  そこで初めてSend/Receiveを選ぶ。**選択後の2ボタンの文言はTitleに
+  あった時とバイト単位で同一**（`TitleSendAnimation(Ble)`/
+  `TitleReceiveAnimation(Ble)`をそのまま再利用、新規文言は作っていない
+  ——ユーザー指示「文言は今のままで」を字義通り満たす設計）
+  - 新規i18n文字列は2つだけ: `TitleSendReceive`（Titleの統合ボタン自体の
+    ラベル、ユーザーが直接指定した日本語「送受信」をJAテーブルに採用）と
+    `SendReceiveGuide`（新画面下部のガイド文言、Settings画面と同一文言だが
+    画面ごとに個別StrIdを持たせる既存の設計方針を踏襲）。`SendReceiveTitle`
+    は`TitleSendReceive`と同じ文言のため独立StrIdにせず共有はせず重複させた
+    （画面見出しとメニューボタンは意味的に別物という既存パターンに合わせた）
+  - `ScreenManager`のEscルーティングを変更: 旧「Send/Receive画面から
+    Esc→Title直行」を「Send/Receive画面から Esc→SendReceiveチューザー
+    画面→Esc→Title」の2段階に変更（`model::AppPage::SendReceive`を
+    Send/ReceiveとTitleの中間階層として追加）
+  - 効果: Title画面の最大ボタン数が6個（New/Load/Send/Receive/Settings/
+    Quit）→4〜5個（New/[Load]/Send・Receive/Settings/Quit）に減少。
+    Phase 6で詰めていたボタン高さ・行間を元の余裕あるサイズに戻せる
+    余地ができた（今回は現状維持のまま、レイアウトに十分な余白ができた
+    ことをスクリーンショットで確認）
+- 3言語×Title画面+新Send/Receive選択画面、および
+  Title→SendReceive→Send画面→Esc→SendReceive→Esc→Titleの
+  ナビゲーション往復をスクリーンショットで確認。`docs/screenshots/
+  {title,send_receive}_{en,ja,zh}.png`を更新。全107テストgreen
+
 ## 次フェーズへの引き継ぎ
 - Phase 8-9（パッケージング・実機検証・publish）から着手。PLAN.md参照
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に

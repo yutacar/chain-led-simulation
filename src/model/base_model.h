@@ -9,12 +9,13 @@
 namespace model {
 
 enum class AppPage {
-    Title     = 0,
-    Editor    = 1,
-    Simulator = 2,
-    Send      = 3,
-    Receive   = 4,
-    Settings  = 5,
+    Title       = 0,
+    Editor      = 1,
+    Simulator   = 2,
+    Send        = 3,
+    Receive     = 4,
+    Settings    = 5,
+    SendReceive = 6,  ///< chooser between Send/Receive, reached from Title
 };
 
 class BaseModel {

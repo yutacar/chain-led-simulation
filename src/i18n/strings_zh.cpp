@@ -11,6 +11,7 @@ const Table kChineseTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "新建动画";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "打开动画";
+    t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "收发";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "发送动画 (局域网)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "接收动画 (局域网)";
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "发送动画 (BLE)";
@@ -18,6 +19,9 @@ const Table kChineseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "设置";
     t[static_cast<std::size_t>(StrId::TitleQuit)] = "退出";
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   长按Esc/Home:退出";
+
+    t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "收发";
+    t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:选择   Esc:返回";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "编辑器   帧 %d/%d";
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "颜色:";

@@ -11,6 +11,7 @@ const Table kEnglishTable = [] {
     Table t{};
     t[static_cast<std::size_t>(StrId::TitleNewAnimation)] = "New Animation";
     t[static_cast<std::size_t>(StrId::TitleLoadAnimation)] = "Load Animation";
+    t[static_cast<std::size_t>(StrId::TitleSendReceive)] = "Send / Receive";
     t[static_cast<std::size_t>(StrId::TitleSendAnimation)] = "Send Animation (LAN)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimation)] = "Receive Animation (LAN)";
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "Send Animation (BLE)";
@@ -18,6 +19,9 @@ const Table kEnglishTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "Settings";
     t[static_cast<std::size_t>(StrId::TitleQuit)] = "Quit";
     t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc (hold) / Home: Quit";
+
+    t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "Send / Receive";
+    t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter: Select   Esc: Back";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "Editor   Frame %d/%d";
     t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "Color:";

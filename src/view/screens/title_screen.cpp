@@ -39,17 +39,10 @@ void quit_cb(lv_event_t* event) {
     }
 }
 
-void send_cb(lv_event_t* event) {
+void send_receive_cb(lv_event_t* event) {
     auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
     if (view_model) {
-        view_model->show_page(model::AppPage::Send);
-    }
-}
-
-void receive_cb(lv_event_t* event) {
-    auto* view_model = static_cast<viewmodel::BaseViewModel*>(lv_event_get_user_data(event));
-    if (view_model) {
-        view_model->show_page(model::AppPage::Receive);
+        view_model->show_page(model::AppPage::SendReceive);
     }
 }
 
@@ -105,6 +98,16 @@ void TitleScreen::build_content(lv_obj_t* content) {
         reactive::bind_theme(title, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
     }
 
+    // "Simulation" completes the "CHAINLED Simulation" brand lockup below
+    // the logo -- fixed English literal, same non-translated treatment as
+    // the logo itself (not part of the i18n catalog).
+    auto* subtitle = lv_label_create(content);
+    lv_label_set_text(subtitle, "Simulation");
+    lv_obj_set_style_text_font(subtitle, i18n::font_for_size(12), 0);
+    lv_obj_set_style_text_opa(subtitle, LV_OPA_70, 0);
+    lv_obj_align_to(subtitle, title, LV_ALIGN_OUT_BOTTOM_MID, 0, 1);
+    reactive::bind_theme(subtitle, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
+
     auto* menu = lv_obj_create(content);
     lv_obj_remove_style_all(menu);
     lv_obj_set_size(menu, 160, LV_SIZE_CONTENT);
@@ -130,25 +133,11 @@ void TitleScreen::build_content(lv_obj_t* content) {
         lv_group_add_obj(BaseScreen::shared_group(), load_button);
     }
 
-#if CHAINLED_BLE
-    auto* send_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendAnimationBle));
-#else
-    auto* send_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendAnimation));
-#endif
-    reactive::bind_theme(send_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
-    lv_obj_add_event_cb(send_button, send_cb, LV_EVENT_CLICKED, &view_model());
-    BaseScreen::enable_arrow_focus_navigation(send_button);
-    lv_group_add_obj(BaseScreen::shared_group(), send_button);
-
-#if CHAINLED_BLE
-    auto* receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleReceiveAnimationBle));
-#else
-    auto* receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleReceiveAnimation));
-#endif
-    reactive::bind_theme(receive_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
-    lv_obj_add_event_cb(receive_button, receive_cb, LV_EVENT_CLICKED, &view_model());
-    BaseScreen::enable_arrow_focus_navigation(receive_button);
-    lv_group_add_obj(BaseScreen::shared_group(), receive_button);
+    auto* send_receive_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSendReceive));
+    reactive::bind_theme(send_receive_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);
+    lv_obj_add_event_cb(send_receive_button, send_receive_cb, LV_EVENT_CLICKED, &view_model());
+    BaseScreen::enable_arrow_focus_navigation(send_receive_button);
+    lv_group_add_obj(BaseScreen::shared_group(), send_receive_button);
 
     auto* settings_button = make_menu_button(menu, i18n::tr(i18n::StrId::TitleSettings));
     reactive::bind_theme(settings_button, view_model().dark_mode_subject(), reactive::ThemeRole::Button);

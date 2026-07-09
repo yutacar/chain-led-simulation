@@ -29,8 +29,12 @@ enum class StrId {
     // (App/brand title is a fixed English wordmark rendered as ASCII-art,
     // not translated -- see tools/generate_title_logo.py -- so there is no
     // AppTitle StrId here.)
+    // (The "Simulation" caption under the logo is a fixed English literal in
+    // title_screen.cpp, same non-translated treatment as the logo itself --
+    // no StrId needed.)
     TitleNewAnimation,
     TitleLoadAnimation,
+    TitleSendReceive,          ///< combined Title-screen entry -> AppPage::SendReceive chooser
     TitleSendAnimation,
     TitleReceiveAnimation,
     TitleSendAnimationBle,     ///< device build (CHAINLED_BLE): "Send Animation (BLE)"
@@ -38,6 +42,10 @@ enum class StrId {
     TitleSettings,
     TitleQuit,
     TitleGuide,
+
+    // ---- Send/Receive chooser screen (between Title and Send/Receive) ----
+    SendReceiveTitle,
+    SendReceiveGuide,
 
     // ---- Editor screen ----
     EditorTitle,             ///< "Editor   Frame %d/%d" (template, %d = index, %d = count)
