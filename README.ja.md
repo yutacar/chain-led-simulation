@@ -24,7 +24,7 @@ English README is available at [README.md](README.md).
 
 ## インストール
 
-**CardputerZero Hub AppStore から**: まだ未掲載です——詳細は下記「[現在の状況](#現在の状況)」参照。
+**CardputerZero Hub AppStore から**: 申請中です——[CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62) がオープン済み・未マージです。詳細は下記「[現在の状況](#現在の状況)」参照。
 
 **手動インストール**（[開発者向け情報](#開発者向け情報)を参考に`.deb`を自分でビルドした場合）:
 
@@ -89,7 +89,11 @@ Intel Mac の場合は `darwin-x86-64` の preset を使用してください。
 
 ### 現在の状況
 
-本プロジェクトは開発途中です（フェーズ計画の全体は [`PLAN.md`](PLAN.md) を参照）。Phase 0〜7（アニメーションコア、エディタ/シミュレータUI、残りコマ自動生成——ローカルLLM経路はRAM容量の都合で不採用と判断済み、詳細は`NOTES.md`「Phase 3: Go/No-Go」参照——、Chain Mono/RGBプロトコル＋実機出力、TCP/BLE配布、EN/JA/ZH多言語対応）は完了済みです。パッケージング（`.deb`化）と実機検証（Phase 8〜9）はまだ未着手のため、現時点ではインストール可能なパッケージやHub AppStoreでの配布はありません。ソースからビルドする（上記参照）のが現状唯一の実行方法です。
+本プロジェクトは開発途中です（フェーズ計画の全体は [`PLAN.md`](PLAN.md) を参照）。Phase 0〜8（アニメーションコア、エディタ/シミュレータUI、残りコマ自動生成——ローカルLLM経路はRAM容量の都合で不採用と判断済み、詳細は`NOTES.md`「Phase 3: Go/No-Go」参照——、Chain Mono/RGBプロトコル＋実機出力、TCP/BLE配布、EN/JA/ZH多言語対応、パッケージング）は完了済みです。CardputerZeroの実クロスビルドから生成した`.deb`が問題なくビルドでき、[`prepublish_check.py`](https://github.com/CardputerZero/skill)はエラー・警告ゼロで通過、クリーンな環境での`apt install`/`apt remove`往復も検証済みです。
+
+CardputerZero Hub AppStoreへの申請自体は完了しています: [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62)（"publish: chainled 1.0.0"）が`czdev publish`経由でオープン済みです。
+
+**まだ完了していないこと**: メンテナー自身がまだ実機（CardputerZero本体・Chain Mono/RGB）を所持していないための実機検証です。これがPR自体のマージ判断を妨げている要因であり、申請そのものが未完了というわけではありません。詳細は[`NOTES.md`](NOTES.md)「Phase 9」の未完了チェックリストを参照してください。PRがマージされるまではHub AppStoreでの正式配布はありません——それまでは上記のソースからのビルド、または[v1.0.0リリース](https://github.com/yutacar/chain-led-simulation/releases/tag/v1.0.0)からの`.deb`取得が利用方法になります。
 
 ### アーキテクチャ
 

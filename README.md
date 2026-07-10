@@ -24,7 +24,7 @@ More screenshots, including the Japanese and Simplified Chinese UI, are in [`doc
 
 ## Installation
 
-**From the CardputerZero Hub AppStore**: not yet listed — see [Status](#status) below.
+**From the CardputerZero Hub AppStore**: submission is in progress — [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62) is open, not yet merged. See [Status](#status) below.
 
 **Manual install**, once you've built a `.deb` yourself (see [Development](#development)):
 
@@ -91,7 +91,9 @@ For Intel Macs, use the `darwin-x86-64` presets instead. See [`NOTES.md`](NOTES.
 
 This project is under active development (see [`PLAN.md`](PLAN.md) for the full phase plan). Phases 0–8 are complete: animation core, editor/simulator UI, procedural frame generation (with a local-LLM path evaluated and rejected — RAM budget, see `NOTES.md` "Phase 3: Go/No-Go"), Chain Mono/RGB protocol + device output, TCP and BLE distribution, EN/JA/ZH localization, and packaging — a real `.deb` builds cleanly from the CardputerZero cross-build, [`prepublish_check.py`](https://github.com/CardputerZero/skill) passes with zero errors/warnings, and a clean-room `apt install`/`apt remove` round trip has been verified in a fresh container.
 
-**Not yet done**: real-hardware validation and the CardputerZero Hub AppStore submission (`czdev publish`) — both require physical CardputerZero + Chain Mono/RGB hardware and the maintainer's own GitHub OAuth login, neither of which are available in the environment this project has been developed in so far. See [`NOTES.md`](NOTES.md) "Phase 9" for the exact pending checklist. Until that's done, there's no Hub AppStore listing — building your own `.deb` from source (above) is the only way to install it.
+The CardputerZero Hub AppStore submission itself is done: [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62) ("publish: chainled 1.0.0") is open, submitted via `czdev publish`.
+
+**Not yet done**: real-hardware validation on physical CardputerZero + Chain Mono/RGB hardware, which the maintainer doesn't have on hand yet — that's what's blocking the PR's own merge checklist, not the submission itself. See [`NOTES.md`](NOTES.md) "Phase 9" for the exact pending checklist. Until the PR merges, there's no Hub AppStore listing yet — building your own `.deb` from source (above), or grabbing the prebuilt one from the [v1.0.0 release](https://github.com/yutacar/chain-led-simulation/releases/tag/v1.0.0), are the ways to install it in the meantime.
 
 ### Architecture
 

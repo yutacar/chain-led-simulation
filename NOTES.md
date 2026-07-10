@@ -803,27 +803,61 @@ README.md/README.ja.md/THIRD_PARTY_LICENSES.md（前回のドキュメント
 という現状に合わせて更新（後述「次フェーズへの引き継ぎ」の直前に
 反映済み）
 
-## Phase 9: 実機検証 → publish（ヘッドレス範囲のみ完了、実機検証は未実施）
+## Phase 9: 実機検証 → publish（publish完了、実機検証は未実施）
 
-**重要: Phase 9は実機（CardputerZero本体 + Chain Mono/RGBユニット）と
-ユーザー自身のGitHub OAuthログインが必須のため、このセッションでは
-完了できない。** Battleship自身も同じ理由で実機検証・`czdev publish`を
-最後まで未実施のまま残しており（Battleship NOTES.md確認済み）、今回も
-同じ前提を踏襲する。
+### czdev publish 完了（2026-07-10）
+`czdev login`のOAuthデバイスフロー自体はユーザー本人の操作が必須のため
+最初は完了できなかったが、ユーザーがログインを完了させ、続けて私が
+`czdev publish`を試みたところ以下のエラーで失敗した:
 
-### このセッションで確認できたこと（ヘッドレス範囲）
+```
+Error: GET /user/emails status
+Caused by: HTTP status client error (404 Not Found) for url (https://api.github.com/user/emails)
+```
+
+GitHub APIは`user:email`スコープ無しで`/user/emails`を叩くと403ではなく
+404を返す仕様のため、ログイン時に取得したトークンのスコープ不足が濃厚
+だった。2回リトライしたが解消せず、詳細な原因調査（認証情報ファイルの
+中身の読み出し・czdevバイナリからのOAuthクライアント設定抽出）は
+「認証情報を扱う操作」として環境の権限システム自身にブロックされたため
+それ以上の追跡は行わなかった。
+
+**この後、ユーザーがFable（別セッション/エージェント）に依頼して代わりに
+`czdev publish`を実行してもらい、成功した。** 結果:
+[CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62)
+（"publish: chainled 1.0.0"）がオープン。`pool/main/chainled/`に
+`meta.json`・アイコン・スクリーンショット・
+`chainled_1.0.0_arm64.deb.release.json`（sha256
+`5cca53b98418b36ad7bf4245244d3ceb4a59652ad3d3857952773f58beae7eff`——
+本リポジトリで検証済みのものと同一）が追加されている。Maintainer欄も
+`yutacar <yutacar@users.noreply.github.com>`で反映されており、
+下記のメール修正が正しく効いていることを確認できた。
+
+### 事前に発見・修正した実バグ: Maintainerメールのemail_mismatchリスク
+`czdev publish`を試す前に、Battleshipの`yutacar/packages`フォーク上の
+実履歴（`publish/battleship-1.0.0-...`ブランチ、
+[CardputerZero/packages#59](https://github.com/CardputerZero/packages/pull/59)）
+を調査したところ、Battleship自身の`cmake/cm0-package.cmake`が
+`APP_MAINTAINER`を`yutacar@yutacar.net`から`yutacar@users.noreply.github.com`
+へローカルで（未コミットのまま）変更していたことを発見した。
+`gh api user`で確認したところyutacarのGitHubアカウントには公開emailが
+未設定（`email: null`）——`yutacar@yutacar.net`はczdevのMaintainerチェックが
+実際に照合する対象と一致しないと判断し、ChainLEDも同じ
+`yutacar <yutacar@users.noreply.github.com>`に修正、Docker
+（`debian:trixie`, `CHAINLED_BLE=ON`）で`.deb`を再ビルド、
+`prepublish_check.py`再パス・クリーンルームinstall/remove再検証（両方とも
+問題なし、依存関係リストも`readelf -d`と完全一致で変化なし）を経てから
+publishに臨んだ。この修正が無ければ同じemail_mismatchで却下されていた
+可能性が高い。（[[user-github-email]]メモリを訂正済み）
+
+### このセッションで確認できたこと（ヘッドレス範囲、publish以前）
 - `czdev doctor`実行——**"All required dependencies present."**
   （C compiler/cmake/pkg-config/SDL2/SDL2_image/SDL2_mixer/freetype/git
-  全てOK。Battleshipのセッションではpkg-config未導入で引っかかっていたが、
-  今回はDocker環境ではなくこのMac自体に事前に導入済みだったため通過）
-- `czdev login`・`czdev publish`は**実行していない**——OAuthログインは
-  ユーザー本人の操作が必須（GitHubアカウントでの認証）、かつ
-  `czdev publish`は`CardputerZero/packages`への実PRを立てる公開・
-  不可逆に近いアクションのため、ユーザーの明示的な実行指示なしに
-  実施すべきでないと判断した
+  全てOK）
 
 ### ユーザー側でのPhase 9残作業チェックリスト
-実機到着後、以下を順に実施:
+`czdev login`/`czdev publish`はPR #62として完了済み。残るのは実機検証のみ
+（実機到着後、以下を順に実施）:
 
 - [ ] CardputerZero実機に`dist/chainled_1.0.0_arm64.deb`を転送し
       `sudo apt install --no-install-recommends ./chainled_1.0.0_arm64.deb`
@@ -847,10 +881,10 @@ README.md/README.ja.md/THIRD_PARTY_LICENSES.md（前回のドキュメント
       ATT_MTU交渉結果・ペアリング無しでの接続可否を確認
 - [ ] アンインストール後（`apt remove chainled`）に実機上へ痕跡が
       残らないこと
-- [ ] `czdev login`（GitHub OAuthログイン、ユーザー操作）
-- [ ] `czdev publish --deb dist/chainled_1.0.0_arm64.deb`
-      （`CardputerZero/packages`へのPRを作成）
-- [ ] 生成されたPRの内容確認・テスト機材/OS欄への記入・マージ
+- [x] `czdev login`（GitHub OAuthログイン、ユーザー操作）—完了
+- [x] `czdev publish --deb dist/chainled_1.0.0_arm64.deb`—完了、
+      [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62)
+- [ ] PR #62の「Device / OS tested」欄に実機検証結果を追記してからマージ
 
 - 現状カラーピッカーはプリセット6色循環のみ（フルRGBピッカーは意図的に
   Phase 2スコープ外。PLAN.md記載の設計判断）
@@ -865,9 +899,11 @@ README.md/README.ja.md/THIRD_PARTY_LICENSES.md（前回のドキュメント
   よう対応済みだが、`scan_failed`（アダプタ無し等）からの自動リカバリは無い）
 
 ## 次フェーズへの引き継ぎ
-- Phase 9の実機検証・`czdev login`/`czdev publish`はユーザー本人が
-  ハードウェア到着後に実施（上記チェックリスト参照）。それ以外の
-  開発作業は全フェーズ完了
+- `czdev login`/`czdev publish`は完了し、
+  [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62)
+  がオープン中。残るのはPhase 9の実機検証のみ——ユーザー本人が
+  ハードウェア到着後に実施し、結果をPR #62に追記してマージ（上記
+  チェックリスト参照）。それ以外の開発作業は全フェーズ完了
 - 新しいCJK文字（新規StrId追加時など）を`strings_ja.cpp`/`strings_zh.cpp`に
   加えたら`tools/generate_cjk_fonts.py`の再実行を忘れずに（`pip install
   fonttools brotli`が必要、CIでの自動チェックは無し）

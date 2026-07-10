@@ -10,8 +10,9 @@ the third-party components listed below, each under its own license.
 > table below describes what each dependency is used for and how it's pulled in by the build
 > (fetched from source, resolved from the system package manager at build time, or listed in the
 > `.deb`'s own `Depends:` field — see `cmake/cm0-package.cmake`'s `CPACK_DEBIAN_PACKAGE_DEPENDS`,
-> hand-verified against the real cross-built binary's `readelf -d` output). Phase 9 (real-hardware
-> validation and Hub AppStore submission via `czdev publish`) is still pending — see `NOTES.md`
+> hand-verified against the real cross-built binary's `readelf -d` output). Hub AppStore submission
+> via `czdev publish` is done — [CardputerZero/packages#62](https://github.com/CardputerZero/packages/pull/62)
+> is open. Phase 9's remaining item, real-hardware validation, is still pending — see `NOTES.md`
 > "Phase 9" for the checklist.
 
 | Component | License | Used for | How it's pulled in |
