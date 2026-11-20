@@ -29,7 +29,31 @@ struct EvdevKeypad {
     lv_indev_state_t state{LV_INDEV_STATE_RELEASED};
     uint32_t key{0};
     bool shift{false};  ///< Left/Right Shift currently held on this keyboard
+    bool tca8418_symbols{false};  ///< built-in CardputerZero keyboard (see tca8418_symbol)
 };
+
+// The CardputerZero's built-in keyboard (tca8418_keypad_m5stack driver) has
+// no punctuation keys on its base layer; its Sym layer emits these codes as
+// "symbol slots" whose meaning differs from the standard evdev names (e.g.
+// Sym+R sends 71/KEY_KP7 for '-', Sym+T 72/KEY_KP8 for '+', Sym+U
+// 74/KEY_KPMINUS for '['). Table from M5's own FactoryTest app
+// (CardputerZero/FactoryTest src/platform/linux_input.cpp), matching the
+// device-tree linux,keymap1 layer. Applied only to that keyboard so a USB
+// keyboard on the USB-A port keeps standard evdev meanings.
+uint32_t tca8418_symbol(uint16_t code) {
+    static constexpr struct { uint16_t code; char symbol; } kSymbols[] = {
+        {26, '!'}, {27, '@'}, {39, '#'}, {40, '$'}, {41, '%'}, {43, '^'}, {51, '&'}, {52, '*'},
+        {53, '('}, {94, ')'}, {55, '~'}, {69, '`'}, {70, '_'}, {71, '-'}, {72, '+'}, {73, '='},
+        {74, '['}, {75, ']'}, {76, '{'}, {77, '}'}, {79, ';'}, {80, ':'}, {81, '\''}, {82, '"'},
+        {83, '<'}, {85, '>'}, {86, '\\'}, {89, '|'}, {90, ','}, {91, '.'}, {92, '/'}, {93, '?'},
+    };
+    for (const auto& entry : kSymbols) {
+        if (entry.code == code) {
+            return static_cast<uint32_t>(static_cast<unsigned char>(entry.symbol));
+        }
+    }
+    return 0;
+}
 
 // Maps the CardputerZero's 46-key matrix to LVGL group-navigation keys.
 // Arrow keys move focus/cursor, Enter activates/toggles, Esc/Home drive the
@@ -133,7 +157,10 @@ void evdev_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
             continue;
         }
 
-        const auto key = map_evdev_key(input.code, keypad->shift);
+        uint32_t key = keypad->tca8418_symbols ? tca8418_symbol(input.code) : 0;
+        if (!key) {
+            key = map_evdev_key(input.code, keypad->shift);
+        }
         if (!key || input.value == 2) {
             continue;
         }
@@ -164,6 +191,10 @@ void evdev_delete_cb(lv_event_t* event) {
 lv_indev_t* create_keypad_from_fd(int fd) {
     auto* keypad = new EvdevKeypad;
     keypad->fd = fd;
+    char name[64] = {};
+    if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), name) >= 0) {
+        keypad->tca8418_symbols = std::strstr(name, "tca8418") != nullptr;
+    }
 
     auto* indev = lv_indev_create();
     if (!indev) {

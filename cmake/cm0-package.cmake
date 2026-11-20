@@ -107,7 +107,7 @@ string(REGEX REPLACE "[^a-z0-9+.-]" "-" APP_DEBIAN_PACKAGE_NAME_LOWER "${APP_DEB
 # Debian revision: CardputerZero dev guideline (cardputer.cc cp0-dev) names
 # the package file packagename_version-revision_arm64.deb. Bump this for a
 # packaging-only rebuild of the same upstream PROJECT_VERSION.
-set(APP_DEBIAN_REVISION "2" CACHE STRING "Debian package revision appended to PROJECT_VERSION")
+set(APP_DEBIAN_REVISION "3" CACHE STRING "Debian package revision appended to PROJECT_VERSION")
 set(CPACK_PACKAGE_FILE_NAME "${APP_DEBIAN_PACKAGE_NAME_LOWER}_${PROJECT_VERSION}-${APP_DEBIAN_REVISION}_${APP_DEBIAN_ARCHITECTURE}")
 set(CPACK_DEBIAN_PACKAGE_NAME "${APP_DEBIAN_PACKAGE_NAME_LOWER}")
 set(CPACK_DEBIAN_PACKAGE_VERSION "${PROJECT_VERSION}")

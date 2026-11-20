@@ -1,7 +1,7 @@
 {
   "package_name": "chainled",
   "app_name": "ChainLED",
-  "version": "1.0.0-2",
+  "version": "1.0.0-3",
   "description": "Draw 8x8 pixel animations on CardputerZero, preview them on-screen, optionally drive a real Chain Mono/Chain RGB LED matrix over UART, and share animations with another CardputerZero over Bluetooth (BLE).",
   "store": {
     "summary": "Create 8x8 LED animations and drive a real Chain Mono/RGB matrix.",
