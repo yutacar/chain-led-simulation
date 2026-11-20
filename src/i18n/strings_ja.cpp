@@ -17,15 +17,15 @@ const Table kJapaneseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "アニメーションを送信 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "アニメーションを受信 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "設定";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc長押し/Home:終了";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc:終了";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "送受信";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "戻る";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:選択   Esc:戻る";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "エディタ   フレーム %d/%d";
-    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "色:";
-    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "矢印:移動  Enter:切替  C:色";
+    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "色(C):";
+    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "矢印:移動  Enter:切替";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:反転  N:追加  D:複製  Bksp:削除";
     t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:時間  S:保存  P:再生  X:削除";
     t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:このコマから10コマ自動生成";

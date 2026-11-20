@@ -78,6 +78,33 @@ void theme_observer(lv_observer_t* observer, lv_subject_t* subject) {
             lv_obj_set_style_text_color(obj, colors.text, 0);
             lv_obj_set_style_pad_hor(obj, 8, 0);
             lv_obj_set_style_pad_ver(obj, 3, 0);
+            // The LVGL default theme draws focus as an outline *outside* the
+            // button, adds a drop shadow, and grows the button on press. In
+            // our tightly stacked 320x170 menus that spills over neighbouring
+            // buttons and gets clipped by the container (seen on the real
+            // device as "( )" brackets around the list). Keep every state
+            // inside the button's own bounds instead.
+            lv_obj_set_style_shadow_width(obj, 0, 0);
+            lv_obj_set_style_outline_width(obj, 0, LV_STATE_FOCUSED);
+            lv_obj_set_style_outline_width(obj, 0, LV_STATE_FOCUS_KEY);
+            lv_obj_set_style_transform_width(obj, 0, LV_STATE_PRESSED);
+            lv_obj_set_style_transform_height(obj, 0, LV_STATE_PRESSED);
+            lv_obj_set_style_border_width(obj, 2, LV_STATE_FOCUSED);
+            lv_obj_set_style_border_color(obj, colors.primary, LV_STATE_FOCUSED);
+            lv_obj_set_style_bg_color(obj, lv_color_mix(colors.primary, colors.button, LV_OPA_20),
+                                      LV_STATE_FOCUSED);
+            // "Selected" (CHECKED) items, e.g. the current language: solid
+            // primary with white text, so a selected item that is also
+            // focused stays readable (default theme's white CHECKED text
+            // would otherwise sit on the pale focus fill above).
+            lv_obj_set_style_bg_color(obj, colors.primary, LV_STATE_CHECKED);
+            lv_obj_set_style_border_color(obj, colors.primary, LV_STATE_CHECKED);
+            lv_obj_set_style_text_color(obj, lv_color_white(), LV_STATE_CHECKED);
+            lv_obj_set_style_bg_color(obj, colors.primary, LV_STATE_CHECKED | LV_STATE_FOCUSED);
+            lv_obj_set_style_border_width(obj, 2, LV_STATE_CHECKED | LV_STATE_FOCUSED);
+            lv_obj_set_style_border_color(obj, lv_color_darken(colors.primary, LV_OPA_50),
+                                          LV_STATE_CHECKED | LV_STATE_FOCUSED);
+            lv_obj_set_style_text_color(obj, lv_color_white(), LV_STATE_CHECKED | LV_STATE_FOCUSED);
             break;
         case ThemeRole::Text:
             lv_obj_set_style_text_color(obj, colors.text, 0);

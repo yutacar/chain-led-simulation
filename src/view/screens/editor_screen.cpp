@@ -265,6 +265,13 @@ void EditorScreen::build_content(lv_obj_t* content) {
     };
     for (const auto line_id : guide_lines) {
         auto* guide = lv_label_create(panel);
+        // Bound each line to the side panel: without an explicit width a
+        // long line ran past the panel and off the right edge of the screen
+        // on the real device (e.g. "C:Color" cut in half). Wrap rather than
+        // clip so nothing is ever hidden; the strings are sized to fit on
+        // one line in every language.
+        lv_obj_set_width(guide, LV_PCT(100));
+        lv_label_set_long_mode(guide, LV_LABEL_LONG_MODE_WRAP);
         lv_label_set_text(guide, i18n::tr(line_id));
         lv_obj_set_style_text_font(guide, small_font, 0);
         lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);

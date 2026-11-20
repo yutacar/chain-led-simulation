@@ -224,7 +224,10 @@ void ScreenManager::handle_short_esc() {
     const auto page = has_loaded_page_ ? loaded_page_ : view_model_.current_page();
     switch (page) {
         case model::AppPage::Title:
-            // Root screen: nothing above it. Long Esc / Home quits.
+            // Root screen: "one level up" from the title is the launcher's
+            // home screen, so a short Esc quits here (long Esc / Home keep
+            // quitting from anywhere).
+            view_model_.request_quit();
             break;
         case model::AppPage::Editor:
             view_model_.show_page(model::AppPage::Title);

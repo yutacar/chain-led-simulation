@@ -17,15 +17,15 @@ const Table kChineseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "发送动画 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "接收动画 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "设置";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   长按Esc/Home:退出";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   Esc:退出";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "收发";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "返回";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter:选择   Esc:返回";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "编辑器   帧 %d/%d";
-    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "颜色:";
-    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "方向键:移动  Enter:切换  C:颜色";
+    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "颜色(C):";
+    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "方向键:移动  Enter:切换";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:翻转  N:新增  D:复制  Bksp:删除";
     t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:时长  S:保存  P:播放  X:删除";
     t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:从此帧生成10帧动画";

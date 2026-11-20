@@ -17,18 +17,18 @@ const Table kEnglishTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "Send Animation (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "Receive Animation (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "Settings";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc (hold) / Home: Quit";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc: Quit";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "Send / Receive";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "Back";
     t[static_cast<std::size_t>(StrId::SendReceiveGuide)] = "Enter: Select   Esc: Back";
 
     t[static_cast<std::size_t>(StrId::EditorTitle)] = "Editor   Frame %d/%d";
-    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "Color:";
-    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "Arrows:Move  Enter:Toggle  C:Color";
+    t[static_cast<std::size_t>(StrId::EditorColorLabel)] = "Color (C):";
+    t[static_cast<std::size_t>(StrId::EditorGuideMove)] = "Arrows:Move  Enter:Toggle";
     t[static_cast<std::size_t>(StrId::EditorGuideFrameOps)] = "F/V:Flip  N:New  D:Dup  Bksp:Del";
     t[static_cast<std::size_t>(StrId::EditorGuideDurationSave)] = "+/-:Dur  S:Save  P:Play  X:Del";
-    t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:Generate 10 frames from this one";
+    t[static_cast<std::size_t>(StrId::EditorGuideGenerate)] = "G:Auto-generate 10 frames";
     t[static_cast<std::size_t>(StrId::EditorDurationHint)] = "%dms (+/-)";
     t[static_cast<std::size_t>(StrId::EditorSaved)] = "Saved";
     t[static_cast<std::size_t>(StrId::EditorDeleted)] = "Deleted";
