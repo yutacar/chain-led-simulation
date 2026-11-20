@@ -924,7 +924,7 @@ publishに臨んだ。この修正が無ければ同じemail_mismatchで却下�
     `CHAINLED_BLE=OFF` のデスクトップ開発ビルドにしか入らない）。Chain Mono/RGB は任意
     接続なので `additional_hardware` は false とし、説明文と PR に任意である旨を明記
   - 3言語の説明文から「WiFi LAN で送受信」を削除（実機ビルドの実態は BLE のみ）
-  - share_code **`CLED`**（既存 121 アプリと重複なし）、author `YutaCar`/`yutacar`、license MIT
+  - share_code **`CLED`**（既存 121 アプリと重複なし）、author `yutacar`、license MIT
   - `APP_DEBIAN_REVISION`（既定 1）+ `CPACK_DEBIAN_PACKAGE_RELEASE` で Version `1.0.0-1`
   - BSP は v0.0.7（tarball 直下が sysroot。`sysroot/` サブディレクトリは無い）
 - **検証**: store_meta_policy.py をライブ pool と照合し ERROR 0 / WARNING 0、

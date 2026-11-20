@@ -6,7 +6,10 @@
   "store": {
     "summary": "Create 8x8 LED animations and drive a real Chain Mono/RGB matrix.",
     "description": "An 8x8 pixel-animation editor and LED-matrix simulator built for CardputerZero. Draw up to 10 frames with a keyboard-only editor (with automatic remaining-frame generation from a single seed frame), preview in RGB or Mono mode on-screen, and optionally drive a real Chain Mono / Chain RGB (M5Stack Chain series) 8x8 LED matrix live over the Grove UART port — the matrix is not required; the on-screen simulator works on its own. Send and receive animations with another CardputerZero over built-in Bluetooth (BLE). The UI switches between English, Japanese, and Simplified Chinese instantly from Settings.",
-    "categories": ["Creative & Office", "Hardware & IoT"],
+    "categories": [
+      "Creative & Office",
+      "Hardware & IoT"
+    ],
     "permissions": {
       "camera": false,
       "microphone": false,
@@ -16,15 +19,18 @@
       "background_service": false,
       "external_display": false
     },
-    "author": { "display_name": "YutaCar", "github": "yutacar" },
+    "author": {
+      "display_name": "yutacar",
+      "github": "yutacar"
+    },
     "license": "MIT",
     "source_repo": "https://github.com/yutacar/chain-led-simulation",
     "share_code": "CLED",
     "icon": "assets/images/chainled.png",
     "screenshots": [
+      "store/screenshots/title.png",
       "store/screenshots/editor.png",
       "store/screenshots/simulator.png",
-      "store/screenshots/send_receive.png",
       "store/screenshots/settings.png"
     ],
     "locales": {
