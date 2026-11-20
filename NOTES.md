@@ -907,3 +907,29 @@ publishに臨んだ。この修正が無ければ同じemail_mismatchで却下�
 - 新しいCJK文字（新規StrId追加時など）を`strings_ja.cpp`/`strings_zh.cpp`に
   加えたら`tools/generate_cjk_fonts.py`の再実行を忘れずに（`pip install
   fonttools brotli`が必要、CIでの自動チェックは無し）
+
+## Phase 10: ストア再提出（2026-11-20）— 審査プロセスのリセットへの対応
+
+- **経緯**: PR CardputerZero/packages#62 は、2026-10-12 のメンテナによる全アプリ削除
+  （packages commit `e107f92b` "Delete all current apps to restart the submit and
+  review process"）で無効になった。新プロセスで **packages#530（chainled 1.0.0-1）**
+  として再提出し、CI の validate / capture は pass
+- **新プロセスの要点**（Battleship リポジトリ NOTES.md §20 に詳細）: czdev は
+  `CardputerZero/AppBuilder`（`~/work/AppBuilder`）、新規アプリの初回提出は人手審査で
+  **PR コメントへの実機デモ動画（起動 → 主要機能 → 終了）が必須**。app-builder.json の
+  `store` に `permissions`（7項目）/`author`/`license`/`share_code`/`source_repo` が必須に
+- **今回の変更**:
+  - カテゴリ `Graphics` が新しい列挙に無いため `["Creative & Office", "Hardware & IoT"]` に変更
+  - permissions: `network` のみ true（実機ビルドは BLE のみ。TCP 経路は
+    `CHAINLED_BLE=OFF` のデスクトップ開発ビルドにしか入らない）。Chain Mono/RGB は任意
+    接続なので `additional_hardware` は false とし、説明文と PR に任意である旨を明記
+  - 3言語の説明文から「WiFi LAN で送受信」を削除（実機ビルドの実態は BLE のみ）
+  - share_code **`CLED`**（既存 121 アプリと重複なし）、author `YutaCar`/`yutacar`、license MIT
+  - `APP_DEBIAN_REVISION`（既定 1）+ `CPACK_DEBIAN_PACKAGE_RELEASE` で Version `1.0.0-1`
+  - BSP は v0.0.7（tarball 直下が sysroot。`sysroot/` サブディレクトリは無い）
+- **検証**: store_meta_policy.py をライブ pool と照合し ERROR 0 / WARNING 0、
+  NEEDED 6 = Depends 6、クリーン trixie で install / ldd / remove OK、デスクトップ
+  ctest 107/107 green
+- `chainled_1.0.0-1_arm64.deb`: 786224 バイト、sha256
+  `72f08921727d6f053060a4cb505e2e0690d2efbd49219f235f6230cff5a30ed7`
+- **残り（ユーザー作業）**: 実機デモ動画を #530 のコメントに投稿
