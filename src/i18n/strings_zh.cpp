@@ -17,7 +17,8 @@ const Table kChineseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "发送动画 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "接收动画 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "设置";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   Esc:退出";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:选择   Esc x2:退出";
+    t[static_cast<std::size_t>(StrId::TitleGuideArmed)] = "再按一次 Esc 退出";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "收发";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "返回";

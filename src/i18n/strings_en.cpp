@@ -17,7 +17,8 @@ const Table kEnglishTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "Send Animation (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "Receive Animation (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "Settings";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc: Quit";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter: Select   Esc x2: Quit";
+    t[static_cast<std::size_t>(StrId::TitleGuideArmed)] = "Press Esc again to quit";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "Send / Receive";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "Back";

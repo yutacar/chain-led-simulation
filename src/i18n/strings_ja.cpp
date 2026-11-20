@@ -17,7 +17,8 @@ const Table kJapaneseTable = [] {
     t[static_cast<std::size_t>(StrId::TitleSendAnimationBle)] = "アニメーションを送信 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleReceiveAnimationBle)] = "アニメーションを受信 (BLE)";
     t[static_cast<std::size_t>(StrId::TitleSettings)] = "設定";
-    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc:終了";
+    t[static_cast<std::size_t>(StrId::TitleGuide)] = "Enter:選択   Esc x2:終了";
+    t[static_cast<std::size_t>(StrId::TitleGuideArmed)] = "もう一度 Esc で終了";
 
     t[static_cast<std::size_t>(StrId::SendReceiveTitle)] = "送受信";
     t[static_cast<std::size_t>(StrId::SendReceiveBack)] = "戻る";

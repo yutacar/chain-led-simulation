@@ -44,6 +44,7 @@ enum class StrId {
     // the Esc-hold/Home shortcut already documented in TitleGuide, to keep
     // the button stack short.)
     TitleGuide,
+    TitleGuideArmed,   ///< title hint during the double-Esc window
 
     // ---- Send/Receive chooser screen (between Title and Send/Receive) ----
     SendReceiveTitle,

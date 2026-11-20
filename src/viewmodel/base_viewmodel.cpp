@@ -72,6 +72,20 @@ void BaseViewModel::show_page(model::AppPage page) {
     current_page_subject_.set(page_to_int(page));
 }
 
+lv_subject_t* BaseViewModel::title_quit_armed_subject() {
+    return title_quit_armed_subject_.native();
+}
+
+void BaseViewModel::set_title_quit_armed(bool armed) {
+    if (title_quit_armed_subject_.value() != armed) {
+        title_quit_armed_subject_.set(armed);
+    }
+}
+
+bool BaseViewModel::title_quit_armed() const {
+    return title_quit_armed_subject_.value();
+}
+
 void BaseViewModel::request_quit() {
     quit_requested_subject_.set(true);
 }

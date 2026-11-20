@@ -150,14 +150,33 @@ void TitleScreen::build_content(lv_obj_t* content) {
     BaseScreen::enable_arrow_focus_navigation(settings_button);
     lv_group_add_obj(BaseScreen::shared_group(), settings_button);
 
-    // No Quit button -- Esc (hold) / Home already quits (see guide below),
-    // and dropping it keeps this screen's button stack short (user request).
+    // No Quit button -- a double Esc (or Home) quits (see guide below), and
+    // dropping it keeps this screen's button stack short (user request).
+    // ScreenManager arms title_quit_armed on the first Esc; the guide then
+    // reads "Press Esc again to quit" in the accent colour until the window
+    // closes.
     auto* guide = lv_label_create(content);
-    lv_label_set_text(guide, i18n::tr(i18n::StrId::TitleGuide));
     lv_obj_set_style_text_font(guide, i18n::font_for_size(12), 0);
     lv_obj_set_style_text_opa(guide, LV_OPA_70, 0);
     lv_obj_align(guide, LV_ALIGN_BOTTOM_MID, 0, -4);
     reactive::bind_theme(guide, view_model().dark_mode_subject(), reactive::ThemeRole::Text);
+    reactive::bind_bool_text(guide, view_model().title_quit_armed_subject(),
+                             i18n::tr(i18n::StrId::TitleGuide),
+                             i18n::tr(i18n::StrId::TitleGuideArmed));
+    lv_subject_add_observer_obj(
+        view_model().title_quit_armed_subject(),
+        [](lv_observer_t* observer, lv_subject_t* subject) {
+            auto* label = lv_observer_get_target_obj(observer);
+            auto* vm = static_cast<viewmodel::BaseViewModel*>(lv_observer_get_user_data(observer));
+            if (!label || !vm) {
+                return;
+            }
+            const bool armed = lv_subject_get_int(subject) != 0;
+            const auto colors = view::palette(vm->is_dark_mode());
+            lv_obj_set_style_text_opa(label, armed ? LV_OPA_COVER : LV_OPA_70, 0);
+            lv_obj_set_style_text_color(label, armed ? colors.primary : colors.text, 0);
+        },
+        guide, &view_model());
 
     lv_group_focus_obj(default_focus);
 }

@@ -28,6 +28,12 @@ public:
     lv_subject_t* dark_mode_subject();
     lv_subject_t* current_page_subject();
     lv_subject_t* quit_requested_subject();
+    /// True for a short window after the first Esc on the title: a second
+    /// Esc inside it quits to the launcher. The title screen observes this
+    /// to swap its key-guide hint. Driven by ScreenManager.
+    lv_subject_t* title_quit_armed_subject();
+    void set_title_quit_armed(bool armed);
+    bool title_quit_armed() const;
     /// Bumped (incremented) on every animation/editor state change. Screens
     /// register one observer on this and redraw everything on notification,
     /// the same "dirty counter" pattern used throughout this codebase rather
@@ -105,6 +111,7 @@ private:
     reactive::BoolSubject dark_mode_subject_;
     reactive::IntSubject current_page_subject_;
     reactive::BoolSubject quit_requested_subject_;
+    reactive::BoolSubject title_quit_armed_subject_;
     reactive::IntSubject animation_dirty_subject_;
     reactive::IntSubject language_version_subject_;
 };
