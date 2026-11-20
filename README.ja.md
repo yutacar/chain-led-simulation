@@ -24,7 +24,7 @@ English README is available at [README.md](README.md).
 
 ## インストール
 
-**CardputerZero Hub AppStore から**: 申請中です——[CardputerZero/packages#530](https://github.com/CardputerZero/packages/pull/530) がオープン済み・未マージです。詳細は下記「[現在の状況](#現在の状況)」参照。
+**CardputerZero Hub AppStore から**: 申請中です——[CardputerZero/packages#532](https://github.com/CardputerZero/packages/pull/532) がオープン済み・未マージです。詳細は下記「[現在の状況](#現在の状況)」参照。
 
 **手動インストール**（[開発者向け情報](#開発者向け情報)を参考に`.deb`を自分でビルドした場合）:
 
@@ -91,7 +91,7 @@ Intel Mac の場合は `darwin-x86-64` の preset を使用してください。
 
 本プロジェクトは開発途中です（フェーズ計画の全体は [`PLAN.md`](PLAN.md) を参照）。Phase 0〜8（アニメーションコア、エディタ/シミュレータUI、残りコマ自動生成——ローカルLLM経路はRAM容量の都合で不採用と判断済み、詳細は`NOTES.md`「Phase 3: Go/No-Go」参照——、Chain Mono/RGBプロトコル＋実機出力、TCP/BLE配布、EN/JA/ZH多言語対応、パッケージング）は完了済みです。CardputerZeroの実クロスビルドから生成した`.deb`が問題なくビルドでき、[`prepublish_check.py`](https://github.com/CardputerZero/skill)はエラー・警告ゼロで通過、クリーンな環境での`apt install`/`apt remove`往復も検証済みです。
 
-CardputerZero Hub AppStoreへの申請は [CardputerZero/packages#530](https://github.com/CardputerZero/packages/pull/530)（"publish: chainled 1.0.0-1"）として`czdev publish`経由でオープン済みで、自動検証は通過しています（以前の#62は、2026-10-12にストアが審査をやり直すため全アプリを削除した際に消えました）。新規アプリの初回公開は人手審査で、マージにはPRへの実機デモ動画の投稿が必要です。
+CardputerZero Hub AppStoreへの申請は [CardputerZero/packages#532](https://github.com/CardputerZero/packages/pull/532)（"publish: chainled 1.0.0-2"）として`czdev publish`経由でオープン済みで、自動検証は通過しています（以前の#62は、2026-10-12にストアが審査をやり直すため全アプリを削除した際に消えました）。新規アプリの初回公開は人手審査で、マージにはPRへの実機デモ動画の投稿が必要です。
 
 **まだ完了していないこと**: 実機（CardputerZero本体・Chain Mono/RGB）での検証と、それを撮影したデモ動画の投稿です。これがPRのマージを妨げている要因であり、申請そのものが未完了というわけではありません。詳細は[`NOTES.md`](NOTES.md)「Phase 9」の未完了チェックリストを参照してください。PRがマージされるまではHub AppStoreでの正式配布はありません——それまでは上記のソースからのビルド、または[v1.0.0リリース](https://github.com/yutacar/chain-led-simulation/releases/tag/v1.0.0)からの`.deb`取得が利用方法になります。
 
